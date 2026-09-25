@@ -3,9 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bib-Chat</title>
+    <title>Bib-Chat — Глобальный чат</title>
     <!-- Подключение Google Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Подключение Firebase для онлайн-чата -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -201,8 +204,8 @@
 
 <!-- Экран Авторизации -->
 <div class="login-card" id="login-screen">
-    <h1>Bib-Chat</h1>
-    <p>Добро пожаловать! Войдите в аккаунт, чтобы продолжить.</p>
+    <h1>Глобальный чат</h1>
+    <p>Добро пожаловать в общий чат! Войдите, чтобы общаться со всеми.</p>
     
     <div id="g_id_onload"
          data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
@@ -214,7 +217,7 @@
 <!-- Экран Чата -->
 <div class="chat-container" id="chat-screen">
     <div class="chat-header">
-        <h2 id="chat-title">Bib-Chat</h2>
+        <h2 id="chat-title">Глобальный чат</h2>
         <div class="user-info">
             <span id="user-name" style="font-size: 0.85rem;"></span>
             <button class="tab-btn" onclick="toggleView()" id="toggle-btn">Избранное</button>
@@ -225,17 +228,24 @@
     <div class="messages-list" id="messages-list"></div>
 
     <div class="chat-input-area" id="input-area">
-        <input type="text" id="msg-input" placeholder="Введите сообщение...">
+        <input type="text" id="msg-input" placeholder="Напишите в общий чат...">
         <button onclick="sendMessage()">Отправить</button>
     </div>
 </div>
 
 <script>
+    // Подключение к публичному онлайн-серверу Firebase
+    const firebaseConfig = {
+        databaseURL: "https://bib-chat-global-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database().ref("global_messages");
+
     const BAD_WORDS = ["пизда", "блять", "хуй", "сука", "нахуй", "бля", "ебать", "пидор", "мудак", "пидец", "хер"];
 
     let currentUser = JSON.parse(localStorage.getItem('bib_chat_user')) || null;
-    let messages = [];
-    let favorites = [];
+    let globalMessages = [];
+    let favorites = JSON.parse(localStorage.getItem('bib_chat_favs')) || [];
     let currentTab = 'chat';
 
     function parseJwt (token) {
@@ -260,26 +270,7 @@
     function logout() {
         localStorage.removeItem('bib_chat_user');
         currentUser = null;
-        messages = [];
-        favorites = [];
         checkAuthStatus();
-    }
-
-    function loadUserStorage() {
-        if (!currentUser) return;
-        // Уникальные ключи хранилища для каждого аккаунта
-        const msgKey = 'bib_chat_msgs_' + currentUser.id;
-        const favKey = 'bib_chat_favs_' + currentUser.id;
-        messages = JSON.parse(localStorage.getItem(msgKey)) || [];
-        favorites = JSON.parse(localStorage.getItem(favKey)) || [];
-    }
-
-    function saveStorage() {
-        if (!currentUser) return;
-        const msgKey = 'bib_chat_msgs_' + currentUser.id;
-        const favKey = 'bib_chat_favs_' + currentUser.id;
-        localStorage.setItem(msgKey, JSON.stringify(messages));
-        localStorage.setItem(favKey, JSON.stringify(favorites));
     }
 
     function checkAuthStatus() {
@@ -291,12 +282,25 @@
             loginScreen.style.display = 'none';
             chatScreen.style.display = 'flex';
             userName.innerText = currentUser.name;
-            loadUserStorage();
-            renderMessages();
+            listenGlobalMessages();
         } else {
             loginScreen.style.display = 'flex';
             chatScreen.style.display = 'none';
         }
+    }
+
+    // Получение сообщений со всеобщего сервера в реальном времени
+    function listenGlobalMessages() {
+        db.limitToLast(100).on('value', (snapshot) => {
+            const data = snapshot.val();
+            globalMessages = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    globalMessages.push({ id: key, ...data[key] });
+                });
+            }
+            renderMessages();
+        });
     }
 
     function checkBadWords(text) {
@@ -317,7 +321,7 @@
         const list = document.getElementById('messages-list');
         list.innerHTML = '';
 
-        const source = currentTab === 'chat' ? messages : favorites;
+        const source = currentTab === 'chat' ? globalMessages : favorites;
 
         if (source.length === 0) {
             list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">Сообщений пока нет</div>';
@@ -329,6 +333,7 @@
             card.className = 'message-card' + (msg.hasBadWords ? ' warning-card' : '');
 
             const isFav = favorites.some(f => f.id === msg.id);
+            const isMyMessage = currentUser && msg.authorId === currentUser.id;
 
             let contentHTML = '';
 
@@ -342,12 +347,14 @@
                 contentHTML = `<div class="msg-text">${msg.originalText}</div>`;
             }
 
+            let deleteBtnHTML = isMyMessage ? `<button class="action-btn" onclick="deleteMessage('${msg.id}')" title="Удалить">🗑️</button>` : '';
+
             card.innerHTML = `
                 <div class="msg-header">
                     <span><strong>${msg.author || 'Аноним'}</strong> • ${msg.time}</span>
                     <div class="msg-actions">
                         <button class="action-btn" onclick="toggleFav('${msg.id}')">${isFav ? '⭐' : '☆'}</button>
-                        <button class="action-btn" onclick="deleteMessage('${msg.id}')" title="Удалить">🗑️</button>
+                        ${deleteBtnHTML}
                     </div>
                 </div>
                 ${contentHTML}
@@ -362,23 +369,23 @@
     function sendMessage() {
         const input = document.getElementById('msg-input');
         const text = input.value.trim();
-        if (!text) return;
+        if (!text || !currentUser) return;
 
         const hasBad = checkBadWords(text);
         const masked = maskText(text);
 
         const newMsg = {
-            id: Date.now().toString(),
-            author: currentUser ? currentUser.name : 'Аноним',
+            author: currentUser.name,
+            authorId: currentUser.id,
             originalText: text,
             maskedText: masked,
             hasBadWords: hasBad,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
-        messages.push(newMsg);
-        saveStorage();
-        renderMessages();
+        // Отправка в общую базу данных для всех
+        db.push(newMsg);
         input.value = '';
     }
 
@@ -390,14 +397,16 @@
     }
 
     function deleteMessage(id) {
-        messages = messages.filter(m => m.id !== id);
+        if (currentTab === 'chat') {
+            db.child(id).remove();
+        }
         favorites = favorites.filter(f => f.id !== id);
-        saveStorage();
+        localStorage.setItem('bib_chat_favs', JSON.stringify(favorites));
         renderMessages();
     }
 
     function toggleFav(id) {
-        const msg = messages.find(m => m.id === id) || favorites.find(m => m.id === id);
+        const msg = globalMessages.find(m => m.id === id) || favorites.find(m => m.id === id);
         if (!msg) return;
 
         const favIndex = favorites.findIndex(f => f.id === id);
@@ -407,7 +416,7 @@
             favorites.push(msg);
         }
 
-        saveStorage();
+        localStorage.setItem('bib_chat_favs', JSON.stringify(favorites));
         renderMessages();
     }
 
@@ -423,7 +432,7 @@
             inputArea.style.display = 'none';
         } else {
             currentTab = 'chat';
-            title.innerText = 'Bib-Chat';
+            title.innerText = 'Глобальный чат';
             btn.innerText = 'Избранное';
             inputArea.style.display = 'flex';
         }
