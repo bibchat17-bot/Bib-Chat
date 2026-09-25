@@ -77,7 +77,7 @@
         .user-info {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
 
         .logout-btn {
@@ -128,9 +128,16 @@
         .msg-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-size: 0.8rem;
             color: #666;
             margin-bottom: 4px;
+        }
+
+        .msg-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .msg-text {
@@ -156,7 +163,7 @@
             margin-top: 5px;
         }
 
-        .fav-btn {
+        .action-btn {
             background: transparent;
             border: none;
             cursor: pointer;
@@ -226,9 +233,9 @@
 <script>
     const BAD_WORDS = ["пизда", "блять", "хуй", "сука", "нахуй", "бля", "ебать", "пидор", "мудак", "пидец", "хер"];
 
-    let messages = JSON.parse(localStorage.getItem('bib_chat_msgs')) || [];
-    let favorites = JSON.parse(localStorage.getItem('bib_chat_favs')) || [];
     let currentUser = JSON.parse(localStorage.getItem('bib_chat_user')) || null;
+    let messages = [];
+    let favorites = [];
     let currentTab = 'chat';
 
     function parseJwt (token) {
@@ -243,6 +250,7 @@
     function handleCredentialResponse(response) {
         const responsePayload = parseJwt(response.credential);
         currentUser = {
+            id: responsePayload.sub,
             name: responsePayload.name
         };
         localStorage.setItem('bib_chat_user', JSON.stringify(currentUser));
@@ -252,7 +260,26 @@
     function logout() {
         localStorage.removeItem('bib_chat_user');
         currentUser = null;
+        messages = [];
+        favorites = [];
         checkAuthStatus();
+    }
+
+    function loadUserStorage() {
+        if (!currentUser) return;
+        // Уникальные ключи хранилища для каждого аккаунта
+        const msgKey = 'bib_chat_msgs_' + currentUser.id;
+        const favKey = 'bib_chat_favs_' + currentUser.id;
+        messages = JSON.parse(localStorage.getItem(msgKey)) || [];
+        favorites = JSON.parse(localStorage.getItem(favKey)) || [];
+    }
+
+    function saveStorage() {
+        if (!currentUser) return;
+        const msgKey = 'bib_chat_msgs_' + currentUser.id;
+        const favKey = 'bib_chat_favs_' + currentUser.id;
+        localStorage.setItem(msgKey, JSON.stringify(messages));
+        localStorage.setItem(favKey, JSON.stringify(favorites));
     }
 
     function checkAuthStatus() {
@@ -264,16 +291,12 @@
             loginScreen.style.display = 'none';
             chatScreen.style.display = 'flex';
             userName.innerText = currentUser.name;
+            loadUserStorage();
             renderMessages();
         } else {
             loginScreen.style.display = 'flex';
             chatScreen.style.display = 'none';
         }
-    }
-
-    function saveStorage() {
-        localStorage.setItem('bib_chat_msgs', JSON.stringify(messages));
-        localStorage.setItem('bib_chat_favs', JSON.stringify(favorites));
     }
 
     function checkBadWords(text) {
@@ -322,7 +345,10 @@
             card.innerHTML = `
                 <div class="msg-header">
                     <span><strong>${msg.author || 'Аноним'}</strong> • ${msg.time}</span>
-                    <button class="fav-btn" onclick="toggleFav('${msg.id}')">${isFav ? '⭐' : '☆'}</button>
+                    <div class="msg-actions">
+                        <button class="action-btn" onclick="toggleFav('${msg.id}')">${isFav ? '⭐' : '☆'}</button>
+                        <button class="action-btn" onclick="deleteMessage('${msg.id}')" title="Удалить">🗑️</button>
+                    </div>
                 </div>
                 ${contentHTML}
             `;
@@ -361,6 +387,13 @@
         if (elem) {
             elem.innerText = decodeURIComponent(encodedOriginal);
         }
+    }
+
+    function deleteMessage(id) {
+        messages = messages.filter(m => m.id !== id);
+        favorites = favorites.filter(f => f.id !== id);
+        saveStorage();
+        renderMessages();
     }
 
     function toggleFav(id) {
