@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bib Chat</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body{background:#121212;color:#fff;font-family:sans-serif;padding:15px;margin:0}
+    input,button{width:100%;padding:12px;margin:6px 0;border-radius:8px;border:none;box-sizing:border-box}
+    input{background:#2a2a2a;color:#fff} button{background:#1a73e8;color:#fff;font-weight:bold;cursor:pointer}
+    #chat-box{height:55vh;overflow-y:auto;background:#1e1e1e;padding:10px;border-radius:8px;margin:10px 0}
+    .msg{background:#333;padding:8px 12px;border-radius:8px;margin-bottom:6px;word-break:break-word}
+    .me{background:#1a73e8;text-align:right}
+    .user-card{display:flex;align-items:center;gap:10px;background:#2a2a2a;padding:10px;border-radius:8px;margin-bottom:10px}
+    .user-card img{width:40px;height:40px;border-radius:50%}
+  </style>
+</head>
+<body>
+
+  <!-- 1. Экран входа через Google -->
+  <div id="step-auth">
+    <h2>Bib Chat</h2>
+    <p style="color:#aaa;">Войдите через Google</p>
+    <div id="g_btn" style="margin:15px 0;"></div>
+    <button style="background:#4285F4" onclick="promptGoogle()">Войти через Google окно</button>
+  </div>
+
+  <!-- 2. Ввод пароля шифрования -->
+  <div id="step-pass" style="display:none">
+    <h2>Ключ шифрования</h2>
+    <input type="password" id="pass" placeholder="Введите пароль шифрования">
+    <button onclick="enterChat()">Войти в чат</button>
+  </div>
+
+  <!-- 3. Основной Чат -->
+  <div id="step-chat" style="display:none">
+    <div class="user-card">
+      <img id="u-img" src="https://via.placeholder.com/40">
+      <div>
+        <div id="u-name" style="font-weight:bold;">---</div>
+        <div id="u-email" style="font-size:12px;color:#aaa;">---</div>
+      </div>
+    </div>
+    <div id="chat-box"></div>
+    <input type="text" id="msg-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button onclick="sendMsg()">Отправить</button>
+  </div>
+
+  <script>
+    let userData = null, cryptoKey = null, socket = null;
+    const WS_URL = 'wss://amvera-bibchat-run-bib-chat.amvera.io';
+    const GOOGLE_CLIENT_ID = "880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com";
+
+    function initGoogle() {
+      if (window.google?.accounts?.id) {
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleAuth });
+        google.accounts.id.renderButton(document.getElementById('g_btn'), { theme: "outline", size: "large" });
+      }
+    }
+
+    function promptGoogle() { google?.accounts?.id?.prompt(); }
+
+    function onGoogleAuth(res) {
+      try {
+        const payload = JSON.parse(decodeURIComponent(atob(res.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+        userData = payload;
+        document.getElementById('step-auth').style.display = 'none';
+        document.getElementById('step-pass').style.display = 'block';
+      } catch (e) { alert("Ошибка входа Google"); }
+    }
+
+    async function enterChat() {
+      const p = document.getElementById('pass').value || "default-pass";
+      const enc = new TextEncoder();
+      const km = await crypto.subtle.importKey("raw", enc.encode(p), "PBKDF2", false, ["deriveKey"]);
+      cryptoKey = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: enc.encode("salt"), iterations: 100000, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+
+      document.getElementById('u-name').innerText = userData?.name || 'Пользователь';
+      document.getElementById('u-email').innerText = userData?.email || '';
+      if (userData?.picture) document.getElementById('u-img').src = userData.picture;
+
+      document.getElementById('step-pass').style.display = 'none';
+      document.getElementById('step-chat').style.display = 'block';
+
+      connectWebSocket();
+    }
+
+    function connectWebSocket() {
+      socket = new WebSocket(WS_URL);
+      socket.onmessage = async (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          const iv = new Uint8Array(atob(d.iv).split('').map(c => c.charCodeAt(0)));
+          const buf = new Uint8Array(atob(d.data).split('').map(c => c.charCodeAt(0)));
+          const txt = new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, cryptoKey, buf));
+          if (d.sender !== userData?.email) addMsg(txt, false);
+        } catch (err) {}
+      };
+    }
+
+    async function sendMsg() {
+      const inp = document.getElementById('msg-input');
+      const txt = inp.value.trim();
+      if (!txt) return;
+
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const buf = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, cryptoKey, new TextEncoder().encode(txt));
+      const packet = {
+        sender: userData?.email,
+        iv: btoa(String.fromCharCode(...iv)),
+        data: btoa(String.fromCharCode(...new Uint8Array(buf)))
+      };
+
+      if (socket?.readyState === 1) socket.send(JSON.stringify(packet));
+      addMsg(txt, true);
+      inp.value = '';
+    }
+
+    function addMsg(txt, isMe) {
+      const box = document.getElementById('chat-box');
+      box.innerHTML += `<div class="msg ${isMe ? 'me' : ''}">${txt}</div>`;
+      box.scrollTop = box.scrollHeight;
+    }
+
+    window.onload = initGoogle;
+  </script>
+</body>
+</html>
