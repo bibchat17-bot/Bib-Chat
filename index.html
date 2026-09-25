@@ -3,232 +3,306 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BibChat</title>
-    <!-- Подключаем библиотеку Google Identity Services для авторизации -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <title>Bib-Chat</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f9;
-            color: #333;
+            padding: 0;
+            font-family: Arial, sans-serif;
         }
-        h2 {
-            margin-top: 0;
-        }
-        #chat-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        #auth-section {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
-        #chat-box {
-            height: 300px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            overflow-y: scroll;
+
+        body {
+            background: linear-gradient(135deg, #e63946, #f77f00);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 10px;
-            margin-bottom: 10px;
-            background: #fafafa;
         }
-        .message {
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            background: #e2e8f0;
-            border-radius: 6px;
+
+        .chat-container {
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: #111;
+            color: #fff;
+            padding: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .message button {
-            background: none;
+
+        .chat-header h2 {
+            font-size: 1.2rem;
+        }
+
+        .tab-btn {
+            background: #f77f00;
+            border: none;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .messages-list {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #f9f9f9;
+        }
+
+        .message-card {
+            background: #fff;
+            padding: 10px 14px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            position: relative;
+            word-wrap: break-word;
+            border-left: 4px solid #f77f00;
+        }
+
+        .message-card.warning-card {
+            border-left: 4px solid #d90429;
+            background: #fff0f0;
+        }
+
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .msg-text {
+            font-size: 0.95rem;
+            color: #222;
+        }
+
+        .bad-word-alert {
+            color: #d90429;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .show-btn {
+            background: #d90429;
+            color: #fff;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .fav-btn {
+            background: transparent;
             border: none;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1rem;
         }
-        #input-box {
+
+        .chat-input-area {
+            padding: 10px;
+            background: #fff;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            border-top: 1px solid #eee;
         }
-        #message-input {
+
+        .chat-input-area input {
             flex: 1;
             padding: 10px;
             border: 1px solid #ccc;
-            border-radius: 4px;
+            border-radius: 8px;
+            outline: none;
         }
-        #send-btn, #toggle-favorites {
-            padding: 10px 15px;
-            background: #007bff;
-            color: white;
+
+        .chat-input-area button {
+            background: #e63946;
+            color: #fff;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        #toggle-favorites {
-            background: #ffc107;
-            color: #333;
+            padding: 10px 15px;
+            border-radius: 8px;
             font-weight: bold;
-        }
-        #favorites-container {
-            display: none;
-            border: 1px solid #ffc107;
-            background: #fffdf5;
-            padding: 10px;
-            margin-top: 15px;
-            border-radius: 6px;
-        }
-        .fav-item {
-            background: #fff;
-            padding: 6px 10px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            border: 1px solid #eee;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-<div id="chat-container">
-    <h2>BibChat</h2>
-
-    <!-- Секция входа через Google -->
-    <div id="auth-section">
-        <div id="g_id_onload"
-             data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse">
-        </div>
-        <div class="g_id_signin" data-type="standard"></div>
-        <div id="user-info" style="margin-top: 10px; font-weight: bold; color: green;"></div>
+<div class="chat-container">
+    <div class="chat-header">
+        <h2 id="chat-title">Bib-Chat</h2>
+        <button class="tab-btn" onclick="toggleView()" id="toggle-btn">Избранное</button>
     </div>
 
-    <!-- Кнопка Избранного -->
-    <button id="toggle-favorites">⭐ Избранное</button>
+    <div class="messages-list" id="messages-list"></div>
 
-    <!-- Блок избранных сообщений -->
-    <div id="favorites-container">
-        <h4>Избранные сообщения</h4>
-        <div id="favorites-list">В избранном пока ничего нет.</div>
-    </div>
-
-    <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-
-    <!-- Окно чата -->
-    <div id="chat-box"></div>
-
-    <!-- Поле ввода сообщения -->
-    <div id="input-box">
-        <input type="text" id="message-input" placeholder="Введите сообщение...">
-        <button id="send-btn">Отправить</button>
+    <div class="chat-input-area" id="input-area">
+        <input type="text" id="msg-input" placeholder="Введите сообщение...">
+        <button onclick="sendMessage()">Отправить</button>
     </div>
 </div>
 
 <script>
-    // 1. Обработка успешного входа через Google
-    function handleCredentialResponse(response) {
-        // Расшифровываем JWT токен от Google
-        const responsePayload = parseJwt(response.credential);
-        
-        document.getElementById('user-info').innerText = `Привет, ${responsePayload.name}! (${responsePayload.email})`;
-        // Скрываем кнопку входа, если вошли (опционально, Google сам её умеет прятать, но выведем приветствие)
+    // Список нецензурных слов для фильтрации
+    const BAD_WORDS = ["пизда", "блять", "хуй", "сука", "нахуй", "бля", "ебать", "пидор", "мудак", "пидец", "хер"];
+
+    let messages = JSON.parse(localStorage.getItem('bib_chat_msgs')) || [];
+    let favorites = JSON.parse(localStorage.getItem('bib_chat_favs')) || [];
+    let currentTab = 'chat'; // 'chat' или 'fav'
+
+    function saveStorage() {
+        localStorage.setItem('bib_chat_msgs', JSON.stringify(messages));
+        localStorage.setItem('bib_chat_favs', JSON.stringify(favorites));
     }
 
-    function parseJwt(token) {
-        var base64Url = token.split('.')[1];
-        var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('0' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
+    // Проверка текста на наличие плохих слов
+    function checkBadWords(text) {
+        const lower = text.toLowerCase();
+        return BAD_WORDS.some(word => lower.includes(word));
     }
 
-    // 2. Логика чата и избранного
-    const chatBox = document.getElementById('chat-box');
-    const messageInput = document.getElementById('message-input');
-    const sendBtn = document.getElementById('send-btn');
-    const toggleFavBtn = document.getElementById('toggle-favorites');
-    const favoritesContainer = document.getElementById('favorites-container');
-    const favoritesList = document.getElementById('favorites-list');
+    // Цензурирование текста
+    function maskText(text) {
+        let cleanText = text;
+        BAD_WORDS.forEach(word => {
+            const regex = new RegExp(word, 'gi');
+            cleanText = cleanText.replace(regex, '***');
+        });
+        return cleanText;
+    }
 
-    sendBtn.onclick = function() {
-        const text = messageInput.value.trim();
-        if (text) {
-            appendMessage(text);
-            messageInput.value = '';
+    function renderMessages() {
+        const list = document.getElementById('messages-list');
+        list.innerHTML = '';
+
+        const source = currentTab === 'chat' ? messages : favorites;
+
+        if (source.length === 0) {
+            list.innerHTML = '<div style="text-align:center; color:#888; margin-top:20px;">Сообщений пока нет</div>';
+            return;
         }
-    };
 
-    messageInput.onkeypress = function(e) {
-        if (e.key === 'Enter') {
-            sendBtn.click();
-        }
-    };
+        source.forEach((msg, idx) => {
+            const card = document.createElement('div');
+            card.className = 'message-card' + (msg.hasBadWords ? ' warning-card' : '');
 
-    function appendMessage(text) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message';
+            const isFav = favorites.some(f => f.id === msg.id);
 
-        const textSpan = document.createElement('span');
-        textSpan.textContent = text;
+            let contentHTML = '';
 
-        // Кнопка добавления конкретного сообщения в избранное (⭐)
-        const favBtn = document.createElement('button');
-        favBtn.textContent = '⭐';
-        favBtn.title = 'Добавить в избранное';
-        favBtn.onclick = function() {
-            saveToFavorites(text);
+            if (msg.hasBadWords) {
+                contentHTML = `
+                    <div class="bad-word-alert">⚠️ Внимание: Контент содержит 18+! Просматривать с осторожностью.</div>
+                    <div class="msg-text" id="text-${msg.id}">${msg.maskedText}</div>
+                    <button class="show-btn" onclick="revealText('${msg.id}', '${encodeURIComponent(msg.originalText)}')">Показать оригинал</button>
+                `;
+            } else {
+                contentHTML = `<div class="msg-text">${msg.originalText}</div>`;
+            }
+
+            card.innerHTML = `
+                <div class="msg-header">
+                    <span>${msg.time}</span>
+                    <button class="fav-btn" onclick="toggleFav('${msg.id}')">${isFav ? '⭐' : '☆'}</button>
+                </div>
+                ${contentHTML}
+            `;
+
+            list.appendChild(card);
+        });
+
+        list.scrollTop = list.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('msg-input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const hasBad = checkBadWords(text);
+        const masked = maskText(text);
+
+        const newMsg = {
+            id: Date.now().toString(),
+            originalText: text,
+            maskedText: masked,
+            hasBadWords: hasBad,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
-        msgDiv.appendChild(textSpan);
-        msgDiv.appendChild(favBtn);
-        chatBox.appendChild(msgDiv);
-        chatBox.scrollTop = chatBox.scrollHeight;
+        messages.push(newMsg);
+        saveStorage();
+        renderMessages();
+        input.value = '';
     }
 
-    // Сохранение в localStorage
-    function saveToFavorites(text) {
-        let favorites = JSON.parse(localStorage.getItem('bibchat_favorites')) || [];
-        if (!favorites.includes(text)) {
-            favorites.push(text);
-            localStorage.setItem('bibchat_favorites', JSON.stringify(favorites));
-            alert('Сообщение добавлено в избранное!');
-        } else {
-            alert('Это сообщение уже есть в избранном.');
+    function revealText(id, encodedOriginal) {
+        const elem = document.getElementById(`text-${id}`);
+        if (elem) {
+            elem.innerText = decodeURIComponent(encodedOriginal);
         }
     }
 
-    // Открытие/закрытие блока избранного
-    toggleFavBtn.onclick = function() {
-        if (favoritesContainer.style.display === 'none' || favoritesContainer.style.display === '') {
-            favoritesContainer.style.display = 'block';
-            loadFavorites();
-        } else {
-            favoritesContainer.style.display = 'none';
-        }
-    };
+    function toggleFav(id) {
+        const msg = messages.find(m => m.id === id) || favorites.find(m => m.id === id);
+        if (!msg) return;
 
-    function loadFavorites() {
-        let favorites = JSON.parse(localStorage.getItem('bibchat_favorites')) || [];
-        favoritesList.innerHTML = '';
-        
-        if (favorites.length === 0) {
-            favoritesList.innerHTML = 'В избранном пока ничего нет.';
+        const favIndex = favorites.findIndex(f => f.id === id);
+        if (favIndex > -1) {
+            favorites.splice(favIndex, 1);
         } else {
-            favorites.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'fav-item';
-                div.textContent = `${index + 1}. ${item}`;
-                favoritesList.appendChild(div);
-            });
+            favorites.push(msg);
         }
+
+        saveStorage();
+        renderMessages();
     }
+
+    function toggleView() {
+        const title = document.getElementById('chat-title');
+        const btn = document.getElementById('toggle-btn');
+        const inputArea = document.getElementById('input-area');
+
+        if (currentTab === 'chat') {
+            currentTab = 'fav';
+            title.innerText = 'Избранное';
+            btn.innerText = 'В чат';
+            inputArea.style.display = 'none';
+        } else {
+            currentTab = 'chat';
+            title.innerText = 'Bib-Chat';
+            btn.innerText = 'Избранное';
+            inputArea.style.display = 'flex';
+        }
+
+        renderMessages();
+    }
+
+    document.getElementById('msg-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    renderMessages();
 </script>
 
 </body>
