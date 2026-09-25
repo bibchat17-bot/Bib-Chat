@@ -23,13 +23,39 @@
             padding: 10px;
         }
 
+        /* Экран входа */
+        .login-card {
+            background: #ffffff;
+            padding: 30px 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .login-card h1 {
+            color: #111;
+            font-size: 1.8rem;
+        }
+
+        .login-card p {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Основной чат */
         .chat-container {
             width: 100%;
             max-width: 500px;
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            display: flex;
+            display: none; /* Скрыт до входа */
             flex-direction: column;
             height: 90vh;
             overflow: hidden;
@@ -54,10 +80,14 @@
             gap: 10px;
         }
 
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
+        .logout-btn {
+            background: #d90429;
+            border: none;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
         }
 
         .tab-btn {
@@ -158,44 +188,36 @@
             font-weight: bold;
             cursor: pointer;
         }
-
-        .auth-overlay {
-            padding: 20px;
-            text-align: center;
-            background: #fff;
-            border-top: 1px solid #eee;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
+<!-- Экран Авторизации -->
+<div class="login-card" id="login-screen">
+    <h1>Bib-Chat</h1>
+    <p>Добро пожаловать! Войдите в аккаунт, чтобы продолжить.</p>
+    
+    <div id="g_id_onload"
+         data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-size="large"></div>
+</div>
+
+<!-- Экран Чата -->
+<div class="chat-container" id="chat-screen">
     <div class="chat-header">
         <h2 id="chat-title">Bib-Chat</h2>
         <div class="user-info">
             <span id="user-name" style="font-size: 0.85rem;"></span>
             <button class="tab-btn" onclick="toggleView()" id="toggle-btn">Избранное</button>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
         </div>
     </div>
 
     <div class="messages-list" id="messages-list"></div>
 
-    <!-- Вход через Google -->
-    <div class="auth-overlay" id="auth-area">
-        <p>Войдите, чтобы отправлять сообщения:</p>
-        <div id="g_id_onload"
-             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse">
-        </div>
-        <div class="g_id_signin" data-type="standard"></div>
-    </div>
-
-    <!-- Поле ввода сообщений (показывается после входа) -->
-    <div class="chat-input-area" id="input-area" style="display: none;">
+    <div class="chat-input-area" id="input-area">
         <input type="text" id="msg-input" placeholder="Введите сообщение...">
         <button onclick="sendMessage()">Отправить</button>
     </div>
@@ -221,26 +243,31 @@
     function handleCredentialResponse(response) {
         const responsePayload = parseJwt(response.credential);
         currentUser = {
-            name: responsePayload.name,
-            picture: responsePayload.picture
+            name: responsePayload.name
         };
         localStorage.setItem('bib_chat_user', JSON.stringify(currentUser));
-        updateAuthUI();
+        checkAuthStatus();
     }
 
-    function updateAuthUI() {
-        const authArea = document.getElementById('auth-area');
-        const inputArea = document.getElementById('input-area');
+    function logout() {
+        localStorage.removeItem('bib_chat_user');
+        currentUser = null;
+        checkAuthStatus();
+    }
+
+    function checkAuthStatus() {
+        const loginScreen = document.getElementById('login-screen');
+        const chatScreen = document.getElementById('chat-screen');
         const userName = document.getElementById('user-name');
 
         if (currentUser) {
-            authArea.style.display = 'none';
-            if (currentTab === 'chat') inputArea.style.display = 'flex';
+            loginScreen.style.display = 'none';
+            chatScreen.style.display = 'flex';
             userName.innerText = currentUser.name;
+            renderMessages();
         } else {
-            authArea.style.display = 'flex';
-            inputArea.style.display = 'none';
-            userName.innerText = '';
+            loginScreen.style.display = 'flex';
+            chatScreen.style.display = 'none';
         }
     }
 
@@ -365,7 +392,7 @@
             currentTab = 'chat';
             title.innerText = 'Bib-Chat';
             btn.innerText = 'Избранное';
-            if (currentUser) inputArea.style.display = 'flex';
+            inputArea.style.display = 'flex';
         }
 
         renderMessages();
@@ -375,10 +402,8 @@
         if (e.key === 'Enter') sendMessage();
     });
 
-    updateAuthUI();
-    renderMessages();
+    checkAuthStatus();
 </script>
 
 </body>
-    </html>
-    
+</html>
