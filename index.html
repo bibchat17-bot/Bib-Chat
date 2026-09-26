@@ -31,11 +31,10 @@
         .msg-author { font-size: 12px; font-weight: bold; color: #38bdf8; }
         .message.my .msg-author { color: #bae6fd; }
         .msg-text { font-size: 14px; }
-        .msg-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 2px; }
+        .msg-footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
         .msg-time { font-size: 10px; color: #94a3b8; }
         .message.my .msg-time { color: #e0f2fe; }
-        .delete-btn { background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; padding: 0; display: none; }
-        .message:hover .delete-btn { display: inline; }
+        .delete-btn { background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; padding: 0; }
 
         .chat-input-area { padding: 15px; background: #1e293b; display: flex; gap: 10px; border-top: 1px solid #334155; }
         .chat-input-area input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; outline: none; }
@@ -113,6 +112,17 @@
 
         let currentUser = null;
 
+        // Фильтр цензуры
+        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо"];
+        function filterText(text) {
+            let filtered = text;
+            badWords.forEach(word => {
+                const regex = new RegExp(word, "gi");
+                filtered = filtered.replace(regex, "***");
+            });
+            return filtered;
+        }
+
         function loginWithGoogle() {
             const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=email%20profile`;
             window.location.href = authUrl;
@@ -173,8 +183,11 @@
 
         function sendMessage() {
             const input = document.getElementById('message-input');
-            const text = input.value.trim();
+            let text = input.value.trim();
             if (!text || !currentUser) return;
+
+            // Применяем цензуру
+            text = filterText(text);
 
             const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
