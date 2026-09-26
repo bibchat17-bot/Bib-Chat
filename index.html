@@ -4,416 +4,198 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BibChat</title>
-    
-    <!-- Подключение Firebase (v8) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    
-    <!-- Подключение Google Identity Services -->
+    <!-- Подключение библиотеки Google Auth API -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background-color: #f0f2f5;
+            background-color: #0f172a;
+            color: #f8fafc;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow: hidden;
         }
 
         /* Экран входа */
         #login-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100%;
-            background: #ffffff;
-            z-index: 100;
+            background-color: #1e293b;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
         }
 
         #login-screen h1 {
-            font-size: 2.5rem;
-            color: #0088cc;
-            margin-bottom: 10px;
+            margin-bottom: 0.5rem;
+            color: #38bdf8;
         }
 
         #login-screen p {
-            color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 1.5rem;
+            color: #94a3b8;
+            font-size: 0.9rem;
         }
 
-        /* Основной контейнер приложения */
+        /* Контейнер кнопки Google */
+        .g_id_signin {
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        /* Основной интерфейс чата (скрыт до входа) */
         #chat-screen {
             display: none;
-            flex-direction: column;
             width: 100%;
-            max-width: 500px;
             height: 100vh;
-            background: #ffffff;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-            position: relative;
-        }
-
-        /* Шапка */
-        header {
-            background: #0088cc;
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        header .header-btns {
-            display: flex;
-            gap: 10px;
-        }
-
-        header button {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: background 0.2s;
-        }
-
-        header button:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* Список сообщений */
-        #messages-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
             flex-direction: column;
-            gap: 12px;
-            background: #e6ecef;
-        }
-
-        /* Карточка сообщения */
-        .message-card {
-            background: white;
-            border-radius: 12px;
-            padding: 12px 15px;
-            max-width: 85%;
-            align-self: flex-start;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            position: relative;
-            word-wrap: break-word;
-        }
-
-        .message-card.warning-card {
-            border-left: 4px solid #e63946;
-        }
-
-        .msg-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.8rem;
-            color: #777;
-            margin-bottom: 5px;
-            gap: 10px;
-        }
-
-        .msg-header strong {
-            color: #0088cc;
-        }
-
-        .msg-text {
-            font-size: 0.95rem;
-            color: #222;
-            line-height: 1.4;
-        }
-
-        .bad-word-alert {
-            background: #ffe5e5;
-            color: #d60000;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-
-        .show-btn {
-            background: none;
-            border: none;
-            color: #0088cc;
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-decoration: underline;
-            margin-top: 4px;
-            padding: 0;
-        }
-
-        .msg-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .action-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            opacity: 0.6;
-            transition: opacity 0.2s;
-        }
-
-        .action-btn:hover {
-            opacity: 1;
-        }
-
-        /* Область ввода */
-        #input-area {
-            display: flex;
-            padding: 10px 15px;
-            background: white;
-            border-top: 1px solid #ddd;
-            gap: 10px;
-        }
-
-        #msg-input {
-            flex: 1;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            padding: 10px 15px;
-            outline: none;
-            font-size: 0.95rem;
-        }
-
-        #msg-input:focus {
-            border-color: #0088cc;
-        }
-
-        #send-btn {
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        #send-btn:hover {
-            background: #006699;
-        }
-
-        /* Вид профиля */
-        #profile-view {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            padding: 20px;
-            background: white;
-            overflow-y: auto;
-        }
-
-        .profile-card {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #eee;
-        }
-
-        .profile-card h3 {
-            font-size: 1rem;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .profile-info-item {
-            font-size: 0.9rem;
-            color: #555;
-            margin-bottom: 6px;
-        }
-
-        .deletion-banner {
-            background: #fff3cd;
-            color: #856404;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #ffeeba;
-            font-size: 0.85rem;
-            margin-bottom: 15px;
-        }
-
-        .btn-danger {
-            background: #e63946;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .btn-warning {
-            background: #f77f00;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        /* Нижняя навигация */
-        nav {
-            display: flex;
-            background: white;
-            border-top: 1px solid #ddd;
-            height: 60px;
-        }
-
-        .nav-item {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #888;
-            font-size: 0.75rem;
-            cursor: pointer;
-            border: none;
-            background: none;
-        }
-
-        .nav-item.active {
-            color: #0088cc;
-            font-weight: bold;
-        }
-
-        .nav-item span {
-            font-size: 1.3rem;
-            margin-bottom: 2px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Экран входа -->
+    <!-- Экран входа через Google -->
     <div id="login-screen">
         <h1>BibChat</h1>
-        <p>Войдите, чтобы продолжить</p>
+        <p>Нажмите ниже, чтобы войти через аккаунт Google</p>
         
-        <!-- Кнопка Google Sign-In -->
-        <!-- Кнопка Google Sign-In -->
-<div id="g_id_onload"
-    data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
-    data-callback="handleCredentialResponse">
-</div>
-<div class="g_id_signin" data-type="standard"></div>
-        
-
-    <!-- Основной экран чата -->
-    <div id="chat-screen">
-        
-        <!-- Шапка: Чат -->
-        <header id="header-chats">
-            <span>Глобальный чат</span>
-            <div class="header-btns">
-                <button id="toggle-btn" onclick="toggleFavView()">Избранное</button>
-            </div>
-        </header>
-
-        <!-- Шапка: Профиль -->
-        <header id="header-profile" style="display: none;">
-            <span>Профиль</span>
-        </header>
-
-        <!-- Список сообщений -->
-        <div id="messages-list"></div>
-
-        <!-- Поле ввода (только во вкладке чатов) -->
-        <div id="input-area">
-            <input type="text" id="msg-input" placeholder="Напишите сообщение..." maxlength="500">
-            <button id="send-btn" onclick="sendMessage()">➤</button>
+        <!-- Конфигурация Google Sign-In -->
+        <div id="g_id_onload"
+            data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
+            data-callback="handleCredentialResponse">
         </div>
-
-        <!-- Вид профиля -->
-        <div id="profile-view">
-            <div id="deletion-notice"></div>
-
-            <div class="profile-card">
-                <h3>Информация о пользователе</h3>
-                <div class="profile-info-item">Имя: <strong id="prof-user-name">-</strong></div>
-                <div class="profile-info-item">ID: <span id="prof-user-id" style="font-size:0.8rem; color:#888;">-</span></div>
-            </div>
-
-            <div class="profile-card">
-                <h3>Устройство и Система</h3>
-                <div class="profile-info-item">ОС: <strong id="os-version-info">Определение...</strong></div>
-                <div class="profile-info-item">Платформа: <strong id="platform-mode-info">Определение...</strong></div>
-            </div>
-
-            <div class="profile-card" id="account-actions">
-                <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
-                <button class="btn-danger" onclick="requestAccountDeletion()">Запросить удаление аккаунта (14 дней)</button>
-            </div>
+        
+        <!-- Отображение кнопки -->
+        <div class="g_id_signin" 
+            data-type="standard" 
+            data-size="large" 
+            data-theme="filled_blue"
+            data-text="sign_in_with">
         </div>
-
-        <!-- Нижняя навигация -->
-        <nav>
-            <button class="nav-item active" id="nav-chats" onclick="switchNavTab('chats')">
-                <span>💬</span> Чаты
-            </button>
-            <button class="nav-item" id="nav-profile" onclick="switchNavTab('profile')">
-                <span>👤</span> Профиль
-            </button>
-        </nav>
     </div>
+        <!-- Экран чата (показывается после авторизации) -->
+    <div id="chat-screen">
+        <header style="background: #1e293b; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img id="user-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; display: none;">
+                <div>
+                    <h2 style="font-size: 1.1rem;" id="user-name">BibChat</h2>
+                    <span style="font-size: 0.8rem; color: #4ade80;">Онлайн</span>
+                </div>
+            </div>
+            <button onclick="logout()" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem;">Выйти</button>
+        </header>
+
+        <!-- Окно сообщений -->
+        <div id="messages-container" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+            <!-- Сообщения будут появляться здесь -->
+        </div>
+
+        <!-- Форма отправки сообщения -->
+        <form id="message-form" style="padding: 1rem; background: #1e293b; display: flex; gap: 10px; border-top: 1px solid #334155;">
+            <input type="text" id="message-input" placeholder="Напишите сообщение..." required style="flex: 1; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+            <button type="submit" style="background: #0ea5e9; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Отправить</button>
+        </form>
+    </div>
+
     <script>
-    // --- СПИСОК ПЛОХИХ СЛОВ И НЕНОРМАТИВНОЙ ЛЕКСИКИ ---
+        // Функция расшифровки JWT токена от Google
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Колбэк после успешного входа через Google
+        function handleCredentialResponse(response) {
+            const userData = parseJwt(response.credential);
+            if (userData) {
+                // Сохраняем пользователя
+                localStorage.setItem('bibchat_user', JSON.stringify({
+                    name: userData.name,
+                    email: userData.email,
+                    picture: userData.picture
+                }));
+
+                showChat(userData);
+            }
+        }
+
+        // Показать экран чата
+        function showChat(user) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('chat-screen').style.display = 'flex';
+            
+            document.getElementById('user-name').innerText = user.name;
+            if (user.picture) {
+                const avatar = document.getElementById('user-avatar');
+                avatar.src = user.picture;
+                avatar.style.display = 'block';
+            }
+        }
+
+        // Выход из аккаунта
+        function logout() {
+            localStorage.removeItem('bibchat_user');
+            location.reload();
+        }
+
+        // Проверка авторизации при загрузке страницы
+        window.onload = function() {
+            const savedUser = localStorage.getItem('bibchat_user');
+            if (savedUser) {
+                showChat(JSON.parse(savedUser));
+            }
+        };
+
+        // Обработка отправки сообщений
+        document.getElementById('message-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const messageText = input.value.trim();
+
+            if (messageText) {
+                const savedUser = JSON.parse(localStorage.getItem('bibchat_user') || '{}');
+                const messagesContainer = document.getElementById('messages-container');
+
+                const msgDiv = document.createElement('div');
+                msgDiv.style.cssText = 'align-self: flex-end; background: #0284c7; padding: 0.6rem 1rem; border-radius: 1rem 1rem 0 1rem; max-width: 70%; word-break: break-word;';
+                msgDiv.innerHTML = `<div style="font-size: 0.75rem; color: #bae6fd; margin-bottom: 2px;">${savedUser.name || 'Вы'}</div><div>${messageText}</div>`;
+
+                messagesContainer.appendChild(msgDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
+<script>
+    // --- СПИСОК СЛОВ ДЛЯ 18+ ЦЕНЗУРЫ ---
     const BAD_WORDS = [
         "пизда", "блять", "хуй", "сука", "нахуй", "бля", "пидец", "пипец", 
         "ебать", "еб", "ебан", "мудак", "долбаеб", "долбоеб", "залупа", 
         "гандон", "презерватив", "пидор", "пидорас", "уебок", "шлюха", "сучка"
     ];
 
-    // Точный URL твоей базы Firebase
+    // Настройка Firebase
     const firebaseConfig = {
         databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/"
     };
@@ -482,7 +264,7 @@
         }
     }
 
-    // Определение версий и платформы
+    // Определение ОС и режима работы
     async function initProfileInfo() {
         if (!currentUser) return;
 
@@ -492,7 +274,6 @@
         let osInfo = "Неизвестная ОС";
         let platformType = "Веб-версия";
 
-        // Попытка получить точную версию системы через User-Agent Client Hints API
         if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
             try {
                 const uaData = await navigator.userAgentData.getHighEntropyValues(["platformVersion", "platform"]);
