@@ -6,7 +6,7 @@
     <title>Bib-Chat — Глобальный чат</title>
     <!-- Подключение Google Sign-In -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Подключение Firebase для онлайн-чата -->
+    <!-- Подключение Firebase Realtime Database -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -58,7 +58,7 @@
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            display: none; /* Скрыт до входа */
+            display: none;
             flex-direction: column;
             height: 90vh;
             overflow: hidden;
@@ -74,7 +74,7 @@
         }
 
         .chat-header h2 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
 
         .user-info {
@@ -204,8 +204,8 @@
 
 <!-- Экран Авторизации -->
 <div class="login-card" id="login-screen">
-    <h1>Глобальный чат</h1>
-    <p>Добро пожаловать в общий чат! Войдите, чтобы общаться со всеми.</p>
+    <h1>Bib-Chat</h1>
+    <p>Войдите через Google, чтобы войти в Глобальный чат.</p>
     
     <div id="g_id_onload"
          data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
@@ -228,15 +228,15 @@
     <div class="messages-list" id="messages-list"></div>
 
     <div class="chat-input-area" id="input-area">
-        <input type="text" id="msg-input" placeholder="Напишите в общий чат...">
+        <input type="text" id="msg-input" placeholder="Напишите сообщение...">
         <button onclick="sendMessage()">Отправить</button>
     </div>
 </div>
 
 <script>
-    // Подключение к публичному онлайн-серверу Firebase
+    // Подключение к твоей собственной базе данных Firebase
     const firebaseConfig = {
-        databaseURL: "https://bib-chat-global-default-rtdb.firebaseio.com"
+        databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("global_messages");
@@ -289,7 +289,7 @@
         }
     }
 
-    // Получение сообщений со всеобщего сервера в реальном времени
+    // Слушаем онлайн-базу в реальном времени
     function listenGlobalMessages() {
         db.limitToLast(100).on('value', (snapshot) => {
             const data = snapshot.val();
@@ -384,7 +384,7 @@
             timestamp: firebase.database.ServerValue.TIMESTAMP
         };
 
-        // Отправка в общую базу данных для всех
+        // Отправка в общую базу
         db.push(newMsg);
         input.value = '';
     }
