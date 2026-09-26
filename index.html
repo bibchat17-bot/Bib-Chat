@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BibChat</title>
+    
     <!-- Подключение библиотеки Google Auth API -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Подключение библиотек Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -21,6 +27,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            overflow: hidden;
         }
 
         /* Экран входа */
@@ -32,6 +39,9 @@
             text-align: center;
             max-width: 400px;
             width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #login-screen h1 {
@@ -45,20 +55,90 @@
             font-size: 0.9rem;
         }
 
-        /* Контейнер кнопки Google */
         .g_id_signin {
             display: flex;
             justify-content: center;
             margin-top: 1rem;
         }
 
-        /* Основной интерфейс чата (скрыт до входа) */
+        /* Основной экран приложения */
         #chat-screen {
             display: none;
             width: 100%;
             height: 100vh;
             flex-direction: column;
+            position: relative;
         }
+
+        /* Стили сообщений и модерации 18+ */
+        .message-card {
+            background: #1e293b;
+            padding: 10px 14px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            max-width: 85%;
+            word-break: break-word;
+            position: relative;
+        }
+
+        .warning-card {
+            border: 1px solid #ef4444;
+            background: #2a1215;
+        }
+
+        .msg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .msg-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .bad-word-alert {
+            color: #f87171;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .show-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        /* Баннер удаления аккаунта */
+        .deletion-banner {
+            background: #7f1d1d;
+            color: #fca5a5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .btn-secondary { background: #475569; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-warning { background: #d97706; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-danger { background: #dc2626; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -68,13 +148,11 @@
         <h1>BibChat</h1>
         <p>Нажмите ниже, чтобы войти через аккаунт Google</p>
         
-        <!-- Конфигурация Google Sign-In -->
         <div id="g_id_onload"
             data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
             data-callback="handleCredentialResponse">
         </div>
         
-        <!-- Отображение кнопки -->
         <div class="g_id_signin" 
             data-type="standard" 
             data-size="large" 
@@ -82,378 +160,348 @@
             data-text="sign_in_with">
         </div>
     </div>
-        <!-- Экран чата (показывается после авторизации) -->
+
+    <!-- Основной интерфейс приложения -->
     <div id="chat-screen">
-        <header style="background: #1e293b; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img id="user-avatar" src="" alt="Avatar" style="width: 36px; height: 36px; border-radius: 50%; display: none;">
-                <div>
-                    <h2 style="font-size: 1.1rem;" id="user-name">BibChat</h2>
-                    <span style="font-size: 0.8rem; color: #4ade80;">Онлайн</span>
-                </div>
+        
+        <!-- Шапка для вкладки «Чаты» -->
+        <header id="header-chats" style="background: #1e293b; padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+            <div>
+                <h2 style="font-size: 1.1rem; color: #38bdf8;">BibChat</h2>
+                <span style="font-size: 0.8rem; color: #4ade80;">Онлайн</span>
             </div>
-            <button onclick="logout()" style="background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem;">Выйти</button>
+            <button id="toggle-btn" onclick="toggleFavView()" style="background: #334155; color: white; border: none; padding: 0.5rem 0.8rem; border-radius: 0.5rem; cursor: pointer; font-size: 0.85rem;">
+                Избранное
+            </button>
         </header>
 
-        <!-- Окно сообщений -->
-        <div id="messages-container" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
-            <!-- Сообщения будут появляться здесь -->
+        <!-- Шапка для вкладки «Профиль» -->
+        <header id="header-profile" style="background: #1e293b; padding: 1rem; display: none; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155;">
+            <h2 style="font-size: 1.1rem; color: #38bdf8;">Мой профиль</h2>
+        </header>
+
+        <!-- Вкладка «Чаты»: Список сообщений -->
+        <div id="messages-list" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column;">
+            <!-- Сообщения подгружаются из Firebase -->
         </div>
 
-        <!-- Форма отправки сообщения -->
-        <form id="message-form" style="padding: 1rem; background: #1e293b; display: flex; gap: 10px; border-top: 1px solid #334155;">
-            <input type="text" id="message-input" placeholder="Напишите сообщение..." required style="flex: 1; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
-            <button type="submit" style="background: #0ea5e9; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">Отправить</button>
-        </form>
+        <!-- Вкладка «Чаты»: Поле ввода сообщения -->
+        <div id="input-area" style="padding: 0.75rem 1rem; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155;">
+            <input type="text" id="msg-input" placeholder="Напишите сообщение..." style="flex: 1; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid #334155; background: #0f172a; color: white; outline: none;">
+            <button onclick="sendMessage()" style="background: #0ea5e9; color: white; border: none; padding: 0.75rem 1.25rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold;">
+                Отправить
+            </button>
+        </div>
+
+        <!-- Вкладка «Профиль» -->
+        <div id="profile-view" style="flex: 1; padding: 1.5rem; overflow-y: auto; display: none; flex-direction: column; gap: 1rem; background: #0f172a;">
+            <div id="deletion-notice"></div>
+
+            <div style="background: #1e293b; padding: 1rem; border-radius: 0.75rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #94a3b8;">Пользователь</h3>
+                <p style="font-size: 1.1rem; font-weight: bold;" id="prof-user-name">Загрузка...</p>
+                <p style="font-size: 0.8rem; color: #64748b;" id="prof-user-id">ID: -</p>
+            </div>
+
+            <div style="background: #1e293b; padding: 1rem; border-radius: 0.75rem;">
+                <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #94a3b8;">Информация об устройстве</h3>
+                <p style="font-size: 0.9rem; margin-bottom: 4px;"><strong>Операционная система:</strong> <span id="os-version-info">Определение...</span></p>
+                <p style="font-size: 0.9rem;"><strong>Режим работы:</strong> <span id="platform-mode-info">Определение...</span></p>
+            </div>
+
+            <div id="account-actions" style="display: flex; flex-direction: column; gap: 10px; margin-top: auto;">
+                <!-- Кнопки подгрузятся скриптом -->
+            </div>
+        </div>
+
+        <!-- Нижняя навигация -->
+        <nav style="background: #1e293b; display: flex; border-top: 1px solid #334155; height: 60px;">
+            <button id="nav-chats" onclick="switchNavTab('chats')" class="active" style="flex: 1; background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                💬 Чаты
+            </button>
+            <button id="nav-profile" onclick="switchNavTab('profile')" style="flex: 1; background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                👤 Профиль
+            </button>
+        </nav>
+
     </div>
 
     <script>
-        // Функция расшифровки JWT токена от Google
-        function parseJwt(token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null;
-            }
+        // --- СПИСОК СЛОВ ДЛЯ 18+ ЦЕНЗУРЫ ---
+        const BAD_WORDS = [
+            "пизда", "блять", "хуй", "сука", "нахуй", "бля", "пидец", "пипец", 
+            "ебать", "еб", "ебан", "мудак", "долбаеб", "долбоеб", "залупа", 
+            "гандон", "презерватив", "пидор", "пидорас", "уебок", "шлюха", "сучка"
+        ];
+
+        // Настройка Firebase
+        const firebaseConfig = {
+            databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentUser = JSON.parse(localStorage.getItem('bib_chat_user')) || null;
+        let messagesData = {};
+        let favorites = new Set();
+        let showOnlyFavs = false;
+        let currentTab = 'chats';
+
+        function containsBadWords(text) {
+            if (!text) return false;
+            const lower = text.toLowerCase();
+            return BAD_WORDS.some(word => lower.includes(word));
         }
 
-        // Колбэк после успешного входа через Google
+        function maskBadWords(text) {
+            if (!text) return "";
+            let result = text;
+            BAD_WORDS.forEach(word => {
+                const regex = new RegExp(word, "gi");
+                result = result.replace(regex, "*****");
+            });
+            return result;
+        }
+
+        // Обработка входа через Google с мгновенным переключением экрана
         function handleCredentialResponse(response) {
-            const userData = parseJwt(response.credential);
-            if (userData) {
-                // Сохраняем пользователя
-                localStorage.setItem('bibchat_user', JSON.stringify({
-                    name: userData.name,
-                    email: userData.email,
-                    picture: userData.picture
-                }));
+            const payload = parseJwt(response.credential);
+            if (payload) {
+                currentUser = {
+                    id: payload.sub,
+                    name: payload.name,
+                    email: payload.email,
+                    picture: payload.picture
+                };
 
-                showChat(userData);
+                localStorage.setItem('bib_chat_user', JSON.stringify(currentUser));
+
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('chat-screen').style.display = 'flex';
+
+                checkAuthStatus();
             }
         }
 
-        // Показать экран чата
-        function showChat(user) {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('chat-screen').style.display = 'flex';
-            
-            document.getElementById('user-name').innerText = user.name;
-            if (user.picture) {
-                const avatar = document.getElementById('user-avatar');
-                avatar.src = user.picture;
-                avatar.style.display = 'block';
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+                return '%' + ('0' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        function checkAuthStatus() {
+            const loginScreen = document.getElementById('login-screen');
+            const chatScreen = document.getElementById('chat-screen');
+
+            if (currentUser) {
+                loginScreen.style.display = 'none';
+                chatScreen.style.display = 'flex';
+
+                initProfileInfo();
+                checkDeletionStatus();
+                loadFavorites();
+                listenMessages();
+            } else {
+                loginScreen.style.display = 'flex';
+                chatScreen.style.display = 'none';
             }
         }
 
-        // Выход из аккаунта
-        function logout() {
-            localStorage.removeItem('bibchat_user');
-            location.reload();
-        }
+        // Определение ОС и режима работы
+        async function initProfileInfo() {
+            if (!currentUser) return;
 
-        // Проверка авторизации при загрузке страницы
-        window.onload = function() {
-            const savedUser = localStorage.getItem('bibchat_user');
-            if (savedUser) {
-                showChat(JSON.parse(savedUser));
-            }
-        };
+            document.getElementById('prof-user-name').innerText = currentUser.name;
+            document.getElementById('prof-user-id').innerText = currentUser.id;
 
-        // Обработка отправки сообщений
-        document.getElementById('message-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const input = document.getElementById('message-input');
-            const messageText = input.value.trim();
+            let osInfo = "Неизвестная ОС";
+            let platformType = "Веб-версия";
 
-            if (messageText) {
-                const savedUser = JSON.parse(localStorage.getItem('bibchat_user') || '{}');
-                const messagesContainer = document.getElementById('messages-container');
-
-                const msgDiv = document.createElement('div');
-                msgDiv.style.cssText = 'align-self: flex-end; background: #0284c7; padding: 0.6rem 1rem; border-radius: 1rem 1rem 0 1rem; max-width: 70%; word-break: break-word;';
-                msgDiv.innerHTML = `<div style="font-size: 0.75rem; color: #bae6fd; margin-bottom: 2px;">${savedUser.name || 'Вы'}</div><div>${messageText}</div>`;
-
-                messagesContainer.appendChild(msgDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-                input.value = '';
-            }
-        });
-    </script>
-</body>
-</html>
-<script>
-    // --- СПИСОК СЛОВ ДЛЯ 18+ ЦЕНЗУРЫ ---
-    const BAD_WORDS = [
-        "пизда", "блять", "хуй", "сука", "нахуй", "бля", "пидец", "пипец", 
-        "ебать", "еб", "ебан", "мудак", "долбаеб", "долбоеб", "залупа", 
-        "гандон", "презерватив", "пидор", "пидорас", "уебок", "шлюха", "сучка"
-    ];
-
-    // Настройка Firebase
-    const firebaseConfig = {
-        databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    let currentUser = JSON.parse(localStorage.getItem('bib_chat_user')) || null;
-    let messagesData = {};
-    let favorites = new Set();
-    let showOnlyFavs = false;
-    let currentTab = 'chats';
-
-    function containsBadWords(text) {
-        if (!text) return false;
-        const lower = text.toLowerCase();
-        return BAD_WORDS.some(word => lower.includes(word));
-    }
-
-    function maskBadWords(text) {
-        if (!text) return "";
-        let result = text;
-        BAD_WORDS.forEach(word => {
-            const regex = new RegExp(word, "gi");
-            result = result.replace(regex, "*****");
-        });
-        return result;
-    }
-
-    function handleCredentialResponse(response) {
-        const payload = parseJwt(response.credential);
-        currentUser = {
-            id: payload.sub,
-            name: payload.name,
-            email: payload.email
-        };
-
-        localStorage.setItem('bib_chat_user', JSON.stringify(currentUser));
-        checkAuthStatus();
-    }
-
-    function parseJwt(token) {
-        const base64Url = token.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
-            return '%' + ('0' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-        return JSON.parse(jsonPayload);
-    }
-
-    function checkAuthStatus() {
-        const loginScreen = document.getElementById('login-screen');
-        const chatScreen = document.getElementById('chat-screen');
-
-        if (currentUser) {
-            loginScreen.style.display = 'none';
-            chatScreen.style.display = 'flex';
-
-            initProfileInfo();
-            checkDeletionStatus();
-            loadFavorites();
-            listenMessages();
-        } else {
-            loginScreen.style.display = 'flex';
-            chatScreen.style.display = 'none';
-        }
-    }
-
-    // Определение ОС и режима работы
-    async function initProfileInfo() {
-        if (!currentUser) return;
-
-        document.getElementById('prof-user-name').innerText = currentUser.name;
-        document.getElementById('prof-user-id').innerText = currentUser.id;
-
-        let osInfo = "Неизвестная ОС";
-        let platformType = "Веб-версия";
-
-        if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
-            try {
-                const uaData = await navigator.userAgentData.getHighEntropyValues(["platformVersion", "platform"]);
-                if (uaData.platform === "Android") {
-                    const majorVersion = parseInt(uaData.platformVersion.split('.')[0]);
-                    const androidVer = majorVersion > 0 ? majorVersion + 4 : 10;
-                    osInfo = `Android ${androidVer}`;
-                    
-                    if (androidVer >= 5 && androidVer <= 7) {
-                        platformType = "Веб-версия (Android 5-7)";
-                    } else if (androidVer >= 8) {
-                        platformType = "Приложение (Android 8-16+)";
+            if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+                try {
+                    const uaData = await navigator.userAgentData.getHighEntropyValues(["platformVersion", "platform"]);
+                    if (uaData.platform === "Android") {
+                        const majorVersion = parseInt(uaData.platformVersion.split('.')[0]);
+                        const androidVer = majorVersion > 0 ? majorVersion + 4 : 10;
+                        osInfo = `Android ${androidVer}`;
+                        
+                        if (androidVer >= 5 && androidVer <= 7) {
+                            platformType = "Веб-версия (Android 5-7)";
+                        } else if (androidVer >= 8) {
+                            platformType = "Приложение (Android 8-16+)";
+                        }
                     }
+                } catch (e) {
+                    fallbackOSDetect();
                 }
-            } catch (e) {
+            } else {
                 fallbackOSDetect();
             }
-        } else {
-            fallbackOSDetect();
-        }
 
-        function fallbackOSDetect() {
-            const ua = navigator.userAgent;
-            if (ua.includes("Android")) {
-                const match = ua.match(/Android\s([0-9\.]+)/);
-                const ver = match ? parseFloat(match[1]) : 10;
-                osInfo = `Android ${ver}`;
-                platformType = ver >= 8 ? "Приложение (Android 8-16+)" : "Веб-версия (Android 5-7)";
-            } else if (ua.includes("iPhone") || ua.includes("iPad")) {
-                osInfo = "iOS";
-                platformType = "Приложение (iOS 11+)";
-            } else {
-                osInfo = "ПК / Браузер";
-                platformType = "Веб-версия";
-            }
-        }
-
-        document.getElementById('os-version-info').innerText = osInfo;
-        document.getElementById('platform-mode-info').innerText = platformType;
-    }
-
-    function checkDeletionStatus() {
-        if (!currentUser) return;
-
-        db.ref('deletion_requests/' + currentUser.id).once('value', snapshot => {
-            const data = snapshot.val();
-            const noticeDiv = document.getElementById('deletion-notice');
-            const actionsDiv = document.getElementById('account-actions');
-
-            if (data && data.status === 'pending') {
-                const now = Date.now();
-                const daysLeft = Math.ceil((data.deleteAt - now) / (1000 * 60 * 60 * 24));
-
-                if (daysLeft <= 0) {
-                    noticeDiv.innerHTML = `<div class="deletion-banner">Ваш аккаунт запланирован к немедленному удалению.</div>`;
+            function fallbackOSDetect() {
+                const ua = navigator.userAgent;
+                if (ua.includes("Android")) {
+                    const match = ua.match(/Android\s([0-9\.]+)/);
+                    const ver = match ? parseFloat(match[1]) : 10;
+                    osInfo = `Android ${ver}`;
+                    platformType = ver >= 8 ? "Приложение (Android 8-16+)" : "Веб-версия (Android 5-7)";
+                } else if (ua.includes("iPhone") || ua.includes("iPad")) {
+                    osInfo = "iOS";
+                    platformType = "Приложение (iOS 11+)";
                 } else {
-                    noticeDiv.innerHTML = `
-                        <div class="deletion-banner">
-                            Запрошено удаление аккаунта.<br>
-                            Осталось дней: <strong>${daysLeft}</strong>.
-                        </div>
+                    osInfo = "ПК / Браузер";
+                    platformType = "Веб-версия";
+                }
+            }
+
+            document.getElementById('os-version-info').innerText = osInfo;
+            document.getElementById('platform-mode-info').innerText = platformType;
+        }
+
+        function checkDeletionStatus() {
+            if (!currentUser) return;
+
+            db.ref('deletion_requests/' + currentUser.id).once('value', snapshot => {
+                const data = snapshot.val();
+                const noticeDiv = document.getElementById('deletion-notice');
+                const actionsDiv = document.getElementById('account-actions');
+
+                if (data && data.status === 'pending') {
+                    const now = Date.now();
+                    const daysLeft = Math.ceil((data.deleteAt - now) / (1000 * 60 * 60 * 24));
+
+                    if (daysLeft <= 0) {
+                        noticeDiv.innerHTML = `<div class="deletion-banner">Ваш аккаунт запланирован к немедленному удалению.</div>`;
+                    } else {
+                        noticeDiv.innerHTML = `
+                            <div class="deletion-banner">
+                                Запрошено удаление аккаунта.<br>
+                                Осталось дней: <strong>${daysLeft}</strong>.
+                            </div>
+                        `;
+                    }
+
+                    actionsDiv.innerHTML = `
+                        <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
+                        <button class="btn-warning" onclick="cancelAccountDeletion()">Отменить запрос на удаление</button>
+                    `;
+                } else {
+                    noticeDiv.innerHTML = '';
+                    actionsDiv.innerHTML = `
+                        <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
+                        <button class="btn-danger" onclick="requestAccountDeletion()">Запросить удаление аккаунта (14 дней)</button>
                     `;
                 }
+            });
+        }
 
-                actionsDiv.innerHTML = `
-                    <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
-                    <button class="btn-warning" onclick="cancelAccountDeletion()">Отменить запрос на удаление</button>
-                `;
-            } else {
-                noticeDiv.innerHTML = '';
-                actionsDiv.innerHTML = `
-                    <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
-                    <button class="btn-danger" onclick="requestAccountDeletion()">Запросить удаление аккаунта (14 дней)</button>
-                `;
+        function requestAccountDeletion() {
+            if (!currentUser) return;
+            if (confirm("Вы уверены, что хотите запросить удаление аккаунта? У вас будет 14 дней на отмену.")) {
+                const deleteAt = Date.now() + (14 * 24 * 60 * 60 * 1000);
+                db.ref('deletion_requests/' + currentUser.id).set({
+                    userId: currentUser.id,
+                    userName: currentUser.name,
+                    requestedAt: Date.now(),
+                    deleteAt: deleteAt,
+                    status: 'pending'
+                }).then(() => {
+                    alert("Запрос создан. Аккаунт будет удален через 14 дней.");
+                    checkDeletionStatus();
+                });
             }
-        });
-    }
+        }
 
-    function requestAccountDeletion() {
-        if (!currentUser) return;
-        if (confirm("Вы уверены, что хотите запросить удаление аккаунта? У вас будет 14 дней на отмену.")) {
-            const deleteAt = Date.now() + (14 * 24 * 60 * 60 * 1000);
-            db.ref('deletion_requests/' + currentUser.id).set({
-                userId: currentUser.id,
-                userName: currentUser.name,
-                requestedAt: Date.now(),
-                deleteAt: deleteAt,
-                status: 'pending'
-            }).then(() => {
-                alert("Запрос создан. Аккаунт будет удален через 14 дней.");
+        function cancelAccountDeletion() {
+            if (!currentUser) return;
+            db.ref('deletion_requests/' + currentUser.id).remove().then(() => {
+                alert("Запрос на удаление аккаунта отменен.");
                 checkDeletionStatus();
             });
         }
-    }
 
-    function cancelAccountDeletion() {
-        if (!currentUser) return;
-        db.ref('deletion_requests/' + currentUser.id).remove().then(() => {
-            alert("Запрос на удаление аккаунта отменен.");
-            checkDeletionStatus();
-        });
-    }
-
-    function logout() {
-        localStorage.removeItem('bib_chat_user');
-        currentUser = null;
-        checkAuthStatus();
-    }
-
-    function loadFavorites() {
-        if (!currentUser) return;
-        db.ref('users/' + currentUser.id + '/favorites').on('value', snapshot => {
-            const data = snapshot.val() || {};
-            favorites = new Set(Object.keys(data));
-            renderMessages();
-        });
-    }
-
-    function toggleFavorite(msgId) {
-        if (!currentUser) return;
-        const favRef = db.ref('users/' + currentUser.id + '/favorites/' + msgId);
-        if (favorites.has(msgId)) {
-            favRef.remove();
-        } else {
-            favRef.set(true);
-        }
-    }
-
-    function toggleFavView() {
-        showOnlyFavs = !showOnlyFavs;
-        document.getElementById('toggle-btn').innerText = showOnlyFavs ? "Все" : "Избранное";
-        renderMessages();
-    }
-
-    function listenMessages() {
-        db.ref('global_messages').limitToLast(100).on('value', snapshot => {
-            messagesData = snapshot.val() || {};
-            renderMessages();
-        });
-    }
-
-    function renderMessages() {
-        const container = document.getElementById('messages-list');
-        container.innerHTML = '';
-
-        const keys = Object.keys(messagesData);
-        if (keys.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Сообщений пока нет</p>';
-            return;
+        function logout() {
+            localStorage.removeItem('bib_chat_user');
+            currentUser = null;
+            checkAuthStatus();
         }
 
-        keys.forEach(id => {
-            if (showOnlyFavs && !favorites.has(id)) return;
+        function loadFavorites() {
+            if (!currentUser) return;
+            db.ref('users/' + currentUser.id + '/favorites').on('value', snapshot => {
+                const data = snapshot.val() || {};
+                favorites = new Set(Object.keys(data));
+                renderMessages();
+            });
+        }
 
-            const msg = messagesData[id];
-            const isFav = favorites.has(id);
-            const hasBadWords = containsBadWords(msg.text || msg.originalText);
-            const textContent = msg.text || msg.originalText || "";
+        function toggleFavorite(msgId) {
+            if (!currentUser) return;
+            const favRef = db.ref('users/' + currentUser.id + '/favorites/' + msgId);
+            if (favorites.has(msgId)) {
+                favRef.remove();
+            } else {
+                favRef.set(true);
+            }
+        }
 
-            const card = document.createElement('div');
-            card.className = 'message-card' + (hasBadWords ? ' warning-card' : '');
+        function toggleFavView() {
+            showOnlyFavs = !showOnlyFavs;
+            document.getElementById('toggle-btn').innerText = showOnlyFavs ? "Все" : "Избранное";
+            renderMessages();
+        }
 
-            const header = document.createElement('div');
-            header.className = 'msg-header';
+        function listenMessages() {
+            db.ref('global_messages').limitToLast(100).on('value', snapshot => {
+                messagesData = snapshot.val() || {};
+                renderMessages();
+            });
+        }
 
-            const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
-            header.innerHTML = `<strong>${escapeHtml(msg.userName || msg.author || 'Аноним')}</strong> <span>${timeStr}</span>`;
+        function renderMessages() {
+            const container = document.getElementById('messages-list');
+            container.innerHTML = '';
 
-            const actions = document.createElement('div');
-            actions.className = 'msg-actions';
+            const keys = Object.keys(messagesData);
+            if (keys.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Сообщений пока нет</p>';
+                return;
+            }
 
-            const favBtn = document.createElement('button');
-            favBtn.className = 'action-btn';
-            favBtn.innerHTML = isFav ? '★' : '☆';
-            favBtn.style.color = isFav ? '#f77f00' : '#ccc';
-            favBtn.onclick = () => toggleFavorite(id);
-            actions.appendChild(favBtn);
+            keys.forEach(id => {
+                if (showOnlyFavs && !favorites.has(id)) return;
 
-            if (currentUser && (msg.userId === currentUser.id || msg.authorId === currentUser.id)) {
-                const delBtn = document.createElement('button');
+                const msg = messagesData[id];
+                const isFav = favorites.has(id);
+                const hasBadWords = containsBadWords(msg.text || msg.originalText);
+                const textContent = msg.text || msg.originalText || "";
+
+                const card = document.createElement('div');
+                card.className = 'message-card' + (hasBadWords ? ' warning-card' : '');
+
+                const header = document.createElement('div');
+                header.className = 'msg-header';
+
+                const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+                header.innerHTML = `<strong>${escapeHtml(msg.userName || msg.author || 'Аноним')}</strong> <span>${timeStr}</span>`;
+
+                const actions = document.createElement('div');
+                actions.className = 'msg-actions';
+
+                const favBtn = document.createElement('button');
+                favBtn.className = 'action-btn';
+                favBtn.innerHTML = isFav ? '★' : '☆';
+                favBtn.style.color = isFav ? '#f77f00' : '#ccc';
+                favBtn.onclick = () => toggleFavorite(id);
+                actions.appendChild(favBtn);
+
+                if (currentUser && (msg.userId === currentUser.id || msg.authorId === currentUser.id)) {
+                    const delBtn = document.createElement('button');
+                    delBtn                const delBtn = document.createElement('button');
                 delBtn.className = 'action-btn';
                 delBtn.innerHTML = '🗑️';
                 delBtn.onclick = () => db.ref('global_messages/' + id).remove();
@@ -528,18 +576,16 @@
     function switchNavTab(tab) {
         currentTab = tab;
 
-        document.getElementById('nav-chats').classList.remove('active');
-        document.getElementById('nav-profile').classList.remove('active');
+        document.getElementById('nav-chats').style.color = tab === 'chats' ? '#38bdf8' : '#94a3b8';
+        document.getElementById('nav-profile').style.color = tab === 'profile' ? '#38bdf8' : '#94a3b8';
 
         if (tab === 'chats') {
-            document.getElementById('nav-chats').classList.add('active');
             document.getElementById('header-chats').style.display = 'flex';
             document.getElementById('header-profile').style.display = 'none';
             document.getElementById('messages-list').style.display = 'flex';
             document.getElementById('input-area').style.display = 'flex';
             document.getElementById('profile-view').style.display = 'none';
         } else if (tab === 'profile') {
-            document.getElementById('nav-profile').classList.add('active');
             document.getElementById('header-chats').style.display = 'none';
             document.getElementById('header-profile').style.display = 'flex';
             document.getElementById('messages-list').style.display = 'none';
@@ -554,6 +600,5 @@
 
     checkAuthStatus();
 </script>
-
 </body>
 </html>
