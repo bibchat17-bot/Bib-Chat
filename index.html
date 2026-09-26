@@ -3,115 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bib-Chat — Глобальный чат</title>
-    <!-- Подключение Google Sign-In -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <!-- Подключение Firebase Realtime Database -->
+    <title>BibChat</title>
+    
+    <!-- Подключение Firebase (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <!-- Подключение Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #e63946, #f77f00);
-            min-height: 100vh;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            height: 100vh;
+            overflow: hidden;
         }
 
         /* Экран входа */
-        .login-card {
-            background: #ffffff;
-            padding: 30px 20px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            text-align: center;
-            width: 100%;
-            max-width: 380px;
+        #login-screen {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            justify-content: center;
+            height: 100vh;
+            width: 100%;
+            background: #ffffff;
+            z-index: 100;
         }
 
-        .login-card h1 {
-            color: #111;
-            font-size: 1.8rem;
+        #login-screen h1 {
+            font-size: 2.5rem;
+            color: #0088cc;
+            margin-bottom: 10px;
         }
 
-        .login-card p {
+        #login-screen p {
             color: #666;
-            font-size: 0.95rem;
+            margin-bottom: 30px;
         }
 
         /* Основной контейнер приложения */
-        .chat-container {
-            width: 100%;
-            max-width: 500px;
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        #chat-screen {
             display: none;
             flex-direction: column;
-            height: 90vh;
-            overflow: hidden;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             position: relative;
         }
 
-        .chat-header {
-            background: #111;
-            color: #fff;
-            padding: 15px;
+        /* Шапка */
+        header {
+            background: #0088cc;
+            color: white;
+            padding: 15px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-
-        .chat-header h2 {
-            font-size: 1.1rem;
-        }
-
-        .tab-btn {
-            background: #f77f00;
-            border: none;
-            color: #fff;
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
+            font-size: 1.2rem;
             font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        .messages-list {
+        header .header-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        header button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        header button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Список сообщений */
+        #messages-list {
             flex: 1;
-            padding: 15px;
             overflow-y: auto;
+            padding: 15px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            background: #f9f9f9;
-            margin-bottom: 55px;
+            gap: 12px;
+            background: #e6ecef;
         }
 
+        /* Карточка сообщения */
         .message-card {
-            background: #fff;
-            padding: 10px 14px;
+            background: white;
             border-radius: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 12px 15px;
+            max-width: 85%;
+            align-self: flex-start;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             position: relative;
             word-wrap: break-word;
-            border-left: 4px solid #f77f00;
         }
 
         .message-card.warning-card {
-            border-left: 4px solid #d90429;
-            background: #fff0f0;
+            border-left: 4px solid #e63946;
         }
 
         .msg-header {
@@ -119,144 +129,150 @@
             justify-content: space-between;
             align-items: center;
             font-size: 0.8rem;
-            color: #666;
-            margin-bottom: 4px;
+            color: #777;
+            margin-bottom: 5px;
+            gap: 10px;
         }
 
-        .msg-actions {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .msg-header strong {
+            color: #0088cc;
         }
 
         .msg-text {
             font-size: 0.95rem;
             color: #222;
+            line-height: 1.4;
         }
 
         .bad-word-alert {
-            color: #d90429;
+            background: #ffe5e5;
+            color: #d60000;
+            padding: 6px 10px;
+            border-radius: 6px;
             font-size: 0.8rem;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
 
         .show-btn {
-            background: #d90429;
-            color: #fff;
+            background: none;
             border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
+            color: #0088cc;
+            font-size: 0.8rem;
             cursor: pointer;
-            margin-top: 5px;
+            text-decoration: underline;
+            margin-top: 4px;
+            padding: 0;
+        }
+
+        .msg-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
 
         .action-btn {
-            background: transparent;
+            background: none;
             border: none;
             cursor: pointer;
             font-size: 1rem;
+            opacity: 0.6;
+            transition: opacity 0.2s;
         }
 
-        .chat-input-area {
-            position: absolute;
-            bottom: 55px;
-            left: 0;
-            right: 0;
-            padding: 10px;
-            background: #fff;
+        .action-btn:hover {
+            opacity: 1;
+        }
+
+        /* Область ввода */
+        #input-area {
             display: flex;
-            gap: 8px;
-            border-top: 1px solid #eee;
-            z-index: 10;
-        }
-
-        .chat-input-area input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            outline: none;
-        }
-
-        .chat-input-area button {
-            background: #e63946;
-            color: #fff;
-            border: none;
             padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
+            background: white;
+            border-top: 1px solid #ddd;
+            gap: 10px;
         }
 
-        /* Экран Профиля */
-        .profile-screen {
+        #msg-input {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            padding: 10px 15px;
+            outline: none;
+            font-size: 0.95rem;
+        }
+
+        #msg-input:focus {
+            border-color: #0088cc;
+        }
+
+        #send-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        #send-btn:hover {
+            background: #006699;
+        }
+
+        /* Вид профиля */
+        #profile-view {
             display: none;
+            flex: 1;
             flex-direction: column;
             padding: 20px;
-            flex: 1;
+            background: white;
             overflow-y: auto;
-            gap: 15px;
-            background: #fff;
-            margin-bottom: 55px;
         }
 
         .profile-card {
             background: #f8f9fa;
-            border-radius: 12px;
+            border-radius: 10px;
             padding: 15px;
+            margin-bottom: 15px;
             border: 1px solid #eee;
         }
 
         .profile-card h3 {
             font-size: 1rem;
-            margin-bottom: 8px;
             color: #333;
+            margin-bottom: 10px;
         }
 
-        .info-badge {
-            display: inline-block;
-            background: #e3f2fd;
-            color: #0d47a1;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            margin-top: 5px;
-            font-weight: bold;
+        .profile-info-item {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 6px;
         }
 
-        .platform-tag {
-            display: inline-block;
-            background: #e8f5e9;
-            color: #1b5e20;
-            padding: 6px 12px;
-            border-radius: 6px;
+        .deletion-banner {
+            background: #fff3cd;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
             font-size: 0.85rem;
-            margin-top: 5px;
-            font-weight: bold;
+            margin-bottom: 15px;
         }
 
         .btn-danger {
-            background: #d90429;
+            background: #e63946;
             color: white;
             border: none;
             padding: 10px 15px;
             border-radius: 8px;
-            font-weight: bold;
             cursor: pointer;
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .btn-warning {
-            background: #f77f00;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
+            font-size: 0.9rem;
             width: 100%;
             margin-top: 5px;
         }
@@ -267,138 +283,128 @@
             border: none;
             padding: 10px 15px;
             border-radius: 8px;
-            font-weight: bold;
             cursor: pointer;
+            font-size: 0.9rem;
             width: 100%;
-            margin-top: 5px;
+            margin-bottom: 10px;
         }
 
-        /* Нижняя навигационная панель */
-        .bottom-nav {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 55px;
-            background: #ffffff;
-            border-top: 1px solid #e0e0e0;
+        .btn-warning {
+            background: #f77f00;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        /* Нижняя навигация */
+        nav {
             display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 100;
+            background: white;
+            border-top: 1px solid #ddd;
+            height: 60px;
         }
 
         .nav-item {
             flex: 1;
-            text-align: center;
-            padding: 8px 0;
-            cursor: pointer;
-            font-size: 0.85rem;
-            color: #777;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            font-weight: bold;
+            justify-content: center;
+            color: #888;
+            font-size: 0.75rem;
+            cursor: pointer;
+            border: none;
+            background: none;
         }
 
         .nav-item.active {
-            color: #e63946;
+            color: #0088cc;
+            font-weight: bold;
         }
 
-        .nav-icon {
-            font-size: 1.2rem;
-        }
-
-        .deletion-banner {
-            background: #ffe3e3;
-            border: 1px solid #ffb4b4;
-            color: #d90429;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            margin-bottom: 10px;
+        .nav-item span {
+            font-size: 1.3rem;
+            margin-bottom: 2px;
         }
     </style>
 </head>
 <body>
 
-<!-- Экран Авторизации -->
-<div class="login-card" id="login-screen">
-    <h1>Bib-Chat</h1>
-    <p>Войдите через Google, чтобы войти в Глобальный чат.</p>
-    
-    <div id="g_id_onload"
-         data-client_id="880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com"
-         data-callback="handleCredentialResponse">
-    </div>
-    <div class="g_id_signin" data-type="standard" data-size="large"></div>
-</div>
-
-<!-- Основной Контейнер Приложения -->
-<div class="chat-container" id="chat-screen">
-    
-    <!-- Шапка (для раздела «Чаты») -->
-    <div class="chat-header" id="header-chats">
-        <h2 id="chat-title">Глобальный чат</h2>
-        <button class="tab-btn" onclick="toggleFavView()" id="toggle-btn">Избранное</button>
+    <!-- Экран входа -->
+    <div id="login-screen">
+        <h1>BibChat</h1>
+        <p>Войдите, чтобы продолжить</p>
+        
+        <!-- Кнопка Google Sign-In -->
+        <div id="g_id_onload"
+            data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+            data-callback="handleCredentialResponse">
+        </div>
+        <div class="g_id_signin" data-type="standard"></div>
     </div>
 
-    <!-- Шапка (для раздела «Профиль») -->
-    <div class="chat-header" id="header-profile" style="display: none;">
-        <h2>Мой Профиль</h2>
-    </div>
+    <!-- Основной экран чата -->
+    <div id="chat-screen">
+        
+        <!-- Шапка: Чат -->
+        <header id="header-chats">
+            <span>Глобальный чат</span>
+            <div class="header-btns">
+                <button id="toggle-btn" onclick="toggleFavView()">Избранное</button>
+            </div>
+        </header>
 
-    <!-- Раздел «Чаты» (Список сообщений) -->
-    <div class="messages-list" id="messages-list"></div>
+        <!-- Шапка: Профиль -->
+        <header id="header-profile" style="display: none;">
+            <span>Профиль</span>
+        </header>
 
-    <!-- Поле ввода сообщения -->
-    <div class="chat-input-area" id="input-area">
-        <input type="text" id="msg-input" placeholder="Напишите сообщение...">
-        <button onclick="sendMessage()">Отправить</button>
-    </div>
+        <!-- Список сообщений -->
+        <div id="messages-list"></div>
 
-    <!-- Раздел «Профиль» -->
-    <div class="profile-screen" id="profile-view">
-        <div id="deletion-notice"></div>
-
-        <div class="profile-card">
-            <h3>Аккаунт</h3>
-            <p><strong>Имя:</strong> <span id="prof-user-name">-</span></p>
-            <p style="margin-top: 5px;"><strong>ID:</strong> <span id="prof-user-id" style="font-size: 0.75rem; color:#666;">-</span></p>
+        <!-- Поле ввода (только во вкладке чатов) -->
+        <div id="input-area">
+            <input type="text" id="msg-input" placeholder="Напишите сообщение..." maxlength="500">
+            <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
 
-        <div class="profile-card">
-            <h3>Операционная система и платформа</h3>
-            <p>Система:</p>
-            <div class="info-badge" id="os-version-info">Определение...</div>
-            <p style="margin-top: 10px;">Тип клиента:</p>
-            <div class="platform-tag" id="platform-mode-info">Определение...</div>
-        </div>
+        <!-- Вид профиля -->
+        <div id="profile-view">
+            <div id="deletion-notice"></div>
 
-        <div class="profile-card">
-            <h3>Управление аккаунтом</h3>
-            <div id="account-actions">
+            <div class="profile-card">
+                <h3>Информация о пользователе</h3>
+                <div class="profile-info-item">Имя: <strong id="prof-user-name">-</strong></div>
+                <div class="profile-info-item">ID: <span id="prof-user-id" style="font-size:0.8rem; color:#888;">-</span></div>
+            </div>
+
+            <div class="profile-card">
+                <h3>Устройство и Система</h3>
+                <div class="profile-info-item">ОС: <strong id="os-version-info">Определение...</strong></div>
+                <div class="profile-info-item">Платформа: <strong id="platform-mode-info">Определение...</strong></div>
+            </div>
+
+            <div class="profile-card" id="account-actions">
                 <button class="btn-secondary" onclick="logout()">Выйти из аккаунта</button>
                 <button class="btn-danger" onclick="requestAccountDeletion()">Запросить удаление аккаунта (14 дней)</button>
             </div>
         </div>
-    </div>
 
-    <!-- Нижняя навигационная панель -->
-    <div class="bottom-nav">
-        <div class="nav-item active" id="nav-chats" onclick="switchNavTab('chats')">
-            <span class="nav-icon">💬</span>
-            <span>Чаты</span>
-        </div>
-        <div class="nav-item" id="nav-profile" onclick="switchNavTab('profile')">
-            <span class="nav-icon">👤</span>
-            <span>Профиль</span>
-        </div>
+        <!-- Нижняя навигация -->
+        <nav>
+            <button class="nav-item active" id="nav-chats" onclick="switchNavTab('chats')">
+                <span>💬</span> Чаты
+            </button>
+            <button class="nav-item" id="nav-profile" onclick="switchNavTab('profile')">
+                <span>👤</span> Профиль
+            </button>
+        </nav>
     </div>
-
-</div>
-<script>
+    <script>
     // --- СПИСОК ПЛОХИХ СЛОВ И НЕНОРМАТИВНОЙ ЛЕКСИКИ ---
     const BAD_WORDS = [
         "пизда", "блять", "хуй", "сука", "нахуй", "бля", "пидец", "пипец", 
@@ -406,22 +412,20 @@
         "гандон", "презерватив", "пидор", "пидорас", "уебок", "шлюха", "сучка"
     ];
 
-    // Конфигурация Firebase Realtime Database
+    // Точный URL твоей базы Firebase
     const firebaseConfig = {
-        databaseURL: "https://bib-chat-default-rtdb.firebaseio.com/"
+        databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Состояние приложения
-    let currentUser = null;
+    let currentUser = JSON.parse(localStorage.getItem('bib_chat_user')) || null;
     let messagesData = {};
     let favorites = new Set();
     let showOnlyFavs = false;
     let currentTab = 'chats';
 
-    // Вспомогательные функции для поиска и маскирования слов
     function containsBadWords(text) {
         if (!text) return false;
         const lower = text.toLowerCase();
@@ -438,30 +442,16 @@
         return result;
     }
 
-    // Обработка Google Sign-In
     function handleCredentialResponse(response) {
         const payload = parseJwt(response.credential);
         currentUser = {
             id: payload.sub,
             name: payload.name,
-            email: payload.email,
-            picture: payload.picture
+            email: payload.email
         };
 
-        // Сохраняем/обновляем пользователя в базе данных
-        db.ref('users/' + currentUser.id).update({
-            name: currentUser.name,
-            email: currentUser.email,
-            lastLogin: Date.now()
-        });
-
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('chat-screen').style.display = 'flex';
-
-        initProfileInfo();
-        checkDeletionStatus();
-        loadFavorites();
-        listenMessages();
+        localStorage.setItem('bib_chat_user', JSON.stringify(currentUser));
+        checkAuthStatus();
     }
 
     function parseJwt(token) {
@@ -473,35 +463,76 @@
         return JSON.parse(jsonPayload);
     }
 
-    // Информация о системе и устройстве
-    function initProfileInfo() {
+    function checkAuthStatus() {
+        const loginScreen = document.getElementById('login-screen');
+        const chatScreen = document.getElementById('chat-screen');
+
+        if (currentUser) {
+            loginScreen.style.display = 'none';
+            chatScreen.style.display = 'flex';
+
+            initProfileInfo();
+            checkDeletionStatus();
+            loadFavorites();
+            listenMessages();
+        } else {
+            loginScreen.style.display = 'flex';
+            chatScreen.style.display = 'none';
+        }
+    }
+
+    // Определение версий и платформы
+    async function initProfileInfo() {
         if (!currentUser) return;
 
         document.getElementById('prof-user-name').innerText = currentUser.name;
         document.getElementById('prof-user-id').innerText = currentUser.id;
 
-        const ua = navigator.userAgent;
         let osInfo = "Неизвестная ОС";
-        
-        if (ua.includes("Android")) {
-            const match = ua.match(/Android\s([0-9\.]+)/);
-            osInfo = match ? `Android ${match[1]}` : "Android";
-        } else if (ua.includes("Windows")) {
-            osInfo = "Windows OS";
-        } else if (ua.includes("iPhone") || ua.includes("iPad")) {
-            osInfo = "iOS";
-        } else if (ua.includes("Linux")) {
-            osInfo = "Linux";
+        let platformType = "Веб-версия";
+
+        // Попытка получить точную версию системы через User-Agent Client Hints API
+        if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+            try {
+                const uaData = await navigator.userAgentData.getHighEntropyValues(["platformVersion", "platform"]);
+                if (uaData.platform === "Android") {
+                    const majorVersion = parseInt(uaData.platformVersion.split('.')[0]);
+                    const androidVer = majorVersion > 0 ? majorVersion + 4 : 10;
+                    osInfo = `Android ${androidVer}`;
+                    
+                    if (androidVer >= 5 && androidVer <= 7) {
+                        platformType = "Веб-версия (Android 5-7)";
+                    } else if (androidVer >= 8) {
+                        platformType = "Приложение (Android 8-16+)";
+                    }
+                }
+            } catch (e) {
+                fallbackOSDetect();
+            }
+        } else {
+            fallbackOSDetect();
+        }
+
+        function fallbackOSDetect() {
+            const ua = navigator.userAgent;
+            if (ua.includes("Android")) {
+                const match = ua.match(/Android\s([0-9\.]+)/);
+                const ver = match ? parseFloat(match[1]) : 10;
+                osInfo = `Android ${ver}`;
+                platformType = ver >= 8 ? "Приложение (Android 8-16+)" : "Веб-версия (Android 5-7)";
+            } else if (ua.includes("iPhone") || ua.includes("iPad")) {
+                osInfo = "iOS";
+                platformType = "Приложение (iOS 11+)";
+            } else {
+                osInfo = "ПК / Браузер";
+                platformType = "Веб-версия";
+            }
         }
 
         document.getElementById('os-version-info').innerText = osInfo;
-
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        const platformType = isStandalone ? "Автономное приложение (PWA)" : "Браузерная версия";
         document.getElementById('platform-mode-info').innerText = platformType;
     }
 
-    // Проверка статуса запроса на удаление аккаунта
     function checkDeletionStatus() {
         if (!currentUser) return;
 
@@ -539,7 +570,6 @@
         });
     }
 
-    // Запрос на удаление аккаунта (14 дней)
     function requestAccountDeletion() {
         if (!currentUser) return;
         if (confirm("Вы уверены, что хотите запросить удаление аккаунта? У вас будет 14 дней на отмену.")) {
@@ -557,7 +587,6 @@
         }
     }
 
-    // Отмена запроса на удаление
     function cancelAccountDeletion() {
         if (!currentUser) return;
         db.ref('deletion_requests/' + currentUser.id).remove().then(() => {
@@ -566,14 +595,12 @@
         });
     }
 
-    // Выход из аккаунта
     function logout() {
+        localStorage.removeItem('bib_chat_user');
         currentUser = null;
-        document.getElementById('chat-screen').style.display = 'none';
-        document.getElementById('login-screen').style.display = 'flex';
+        checkAuthStatus();
     }
 
-    // Избранные сообщения
     function loadFavorites() {
         if (!currentUser) return;
         db.ref('users/' + currentUser.id + '/favorites').on('value', snapshot => {
@@ -599,15 +626,13 @@
         renderMessages();
     }
 
-    // Слушатель сообщений чата
     function listenMessages() {
-        db.ref('global_chat').limitToLast(100).on('value', snapshot => {
+        db.ref('global_messages').limitToLast(100).on('value', snapshot => {
             messagesData = snapshot.val() || {};
             renderMessages();
         });
     }
 
-    // Отрисовка списка сообщений с цензурой и предупреждениями
     function renderMessages() {
         const container = document.getElementById('messages-list');
         container.innerHTML = '';
@@ -623,7 +648,8 @@
 
             const msg = messagesData[id];
             const isFav = favorites.has(id);
-            const hasBadWords = containsBadWords(msg.text);
+            const hasBadWords = containsBadWords(msg.text || msg.originalText);
+            const textContent = msg.text || msg.originalText || "";
 
             const card = document.createElement('div');
             card.className = 'message-card' + (hasBadWords ? ' warning-card' : '');
@@ -631,8 +657,8 @@
             const header = document.createElement('div');
             header.className = 'msg-header';
 
-            const timeStr = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            header.innerHTML = `<strong>${escapeHtml(msg.userName)}</strong> <span>${timeStr}</span>`;
+            const timeStr = msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '');
+            header.innerHTML = `<strong>${escapeHtml(msg.userName || msg.author || 'Аноним')}</strong> <span>${timeStr}</span>`;
 
             const actions = document.createElement('div');
             actions.className = 'msg-actions';
@@ -644,6 +670,14 @@
             favBtn.onclick = () => toggleFavorite(id);
             actions.appendChild(favBtn);
 
+            if (currentUser && (msg.userId === currentUser.id || msg.authorId === currentUser.id)) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'action-btn';
+                delBtn.innerHTML = '🗑️';
+                delBtn.onclick = () => db.ref('global_messages/' + id).remove();
+                actions.appendChild(delBtn);
+            }
+
             header.appendChild(actions);
             card.appendChild(header);
 
@@ -653,11 +687,10 @@
             if (hasBadWords) {
                 const alertText = document.createElement('div');
                 alertText.className = 'bad-word-alert';
-                alertText.innerText = '⚠️ Предупреждение: Контент содержит 18+ (ненормативную лексику). Просматривать с осторожностью.';
+                alertText.innerText = '⚠️ Предупреждение: Контент содержит 18+! Просматривать с осторожностью.';
                 card.appendChild(alertText);
 
-                const maskedText = maskBadWords(msg.text);
-                const originalText = msg.text;
+                const maskedText = maskBadWords(textContent);
 
                 const contentSpan = document.createElement('span');
                 contentSpan.innerText = maskedText;
@@ -669,7 +702,7 @@
 
                 toggleBtn.onclick = () => {
                     isOriginalShown = !isOriginalShown;
-                    contentSpan.innerText = isOriginalShown ? originalText : maskedText;
+                    contentSpan.innerText = isOriginalShown ? textContent : maskedText;
                     toggleBtn.innerText = isOriginalShown ? 'Скрыть оригинал' : 'Показать оригинал';
                 };
 
@@ -677,7 +710,7 @@
                 textDiv.appendChild(document.createElement('br'));
                 textDiv.appendChild(toggleBtn);
             } else {
-                textDiv.innerText = msg.text;
+                textDiv.innerText = textContent;
             }
 
             card.appendChild(textDiv);
@@ -687,14 +720,13 @@
         container.scrollTop = container.scrollHeight;
     }
 
-    // Отправка нового сообщения
     function sendMessage() {
         const input = document.getElementById('msg-input');
         const text = input.value.trim();
 
         if (!text || !currentUser) return;
 
-        const newMsgRef = db.ref('global_chat').push();
+        const newMsgRef = db.ref('global_messages').push();
         newMsgRef.set({
             userId: currentUser.id,
             userName: currentUser.name,
@@ -711,7 +743,6 @@
         }
     });
 
-    // Навигация между вкладками «Чаты» и «Профиль»
     function switchNavTab(tab) {
         currentTab = tab;
 
@@ -738,6 +769,8 @@
     function escapeHtml(str) {
         return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
+
+    checkAuthStatus();
 </script>
 
 </body>
