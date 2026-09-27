@@ -122,7 +122,7 @@
                 <div class="messages-container" id="messages"></div>
                 <div class="input-bar">
                     <input type="text" id="message-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-                    <button onclick="sendMessage()">Отправить</button>
+                    <button onclick="sendMessage()">Напечатать</button>
                 </div>
             </div>
 
@@ -166,7 +166,7 @@
         let currentUser = null;
 
         // Фильтр цензуры
-        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо", "пиздец", "ебать", "сучка", "гондон"];
+        const badWords = ["хуй","пизда","блядь","бля","ебать","ебал","сука","мудак","залупа","гандон","пидор","пидорас"];
         function censor(text) {
             let result = text;
             badWords.forEach(w => {
