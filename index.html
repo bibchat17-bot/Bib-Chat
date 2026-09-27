@@ -11,7 +11,7 @@
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 0; height: 100vh; overflow: hidden; }
 
-        /* Экран входа */
+        /* Вход */
         .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
         .card { background: #1e293b; padding: 30px; border-radius: 16px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
         h1 { color: #38bdf8; margin-top: 0; }
@@ -24,13 +24,13 @@
         .top-bar { height: 50px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-weight: bold; }
         .logout-link { color: #ef4444; font-size: 13px; text-decoration: none; cursor: pointer; }
 
-        /* Область экранов (Чат / Профиль) */
+        /* Контентная область */
         .content-area { position: absolute; top: 50px; bottom: 60px; left: 0; right: 0; overflow: hidden; display: flex; flex-direction: column; }
         
         .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* Сообщения чата */
+        /* Чат */
         .messages-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .message { background: #334155; padding: 8px 12px; border-radius: 12px; max-width: 80%; word-break: break-word; align-self: flex-start; }
         .message.my { background: #0284c7; align-self: flex-end; }
@@ -42,16 +42,20 @@
         .message.my .msg-time { color: #e0f2fe; }
         .delete-btn { background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; padding: 0; }
 
-        /* Поле ввода сообщения */
-        .input-bar { padding: 10px; background: #1e293b; border-top: 1px solid #334155; display: flex; gap: 8px; }
+        /* Поле ввода */
+        .input-bar { padding: 10px; background: #1e293b; border-top: 1px solid #334155; display: flex; gap: 8px; z-index: 10; }
         .input-bar input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; outline: none; }
-        .input-bar button { background: #0284c7; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; }
+        .input-bar button { background: #0284c7; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
         /* Профиль */
-        .profile-box { padding: 20px; text-align: center; margin: auto; background: #1e293b; border-radius: 12px; width: 85%; max-width: 320px; }
-        .profile-btn-logout { background: #ef4444; color: #fff; border: none; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 15px; cursor: pointer; }
+        .profile-box { padding: 20px; text-align: center; margin: auto; background: #1e293b; border-radius: 12px; width: 90%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
+        .status-badge { font-size: 12px; padding: 6px; border-radius: 6px; background: #334155; color: #cbd5e1; }
+        .status-badge.deletion { background: #7f1d1d; color: #fca5a5; }
 
-        /* Фиксированная нижняя панель */
+        .btn-danger { background: #ef4444; color: #fff; border: none; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; }
+        .btn-success { background: #22c55e; color: #fff; border: none; padding: 10px; border-radius: 8px; font-weight: bold; width: 100%; cursor: pointer; }
+
+        /* Нижнее меню */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; align-items: center; z-index: 999; }
         .nav-btn { background: none; border: none; color: #94a3b8; font-size: 14px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .nav-btn.active { color: #38bdf8; }
@@ -59,7 +63,7 @@
 </head>
 <body>
 
-    <!-- Вход -->
+    <!-- Экран входа -->
     <div id="login-screen" class="login-container">
         <div class="card">
             <h1>BibChat</h1>
@@ -73,29 +77,35 @@
 
     <!-- Основной интерфейс -->
     <div id="main-app">
-        <!-- Шапка -->
         <div class="top-bar">
             <span id="header-title">BibChat</span>
             <span class="logout-link" onclick="logout()">Выйти</span>
         </div>
 
-        <!-- Контентная область -->
         <div class="content-area">
-            <!-- Вкладка Чат -->
+            <!-- Экран Чат -->
             <div id="screen-chat" class="screen active">
                 <div class="messages-container" id="messages"></div>
                 <div class="input-bar">
-                    <input type="text" id="message-input" placeholder="Сообщение..." onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()">></button>
+                    <input type="text" id="message-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+                    <button onclick="sendMessage()">Отправить</button>
                 </div>
             </div>
 
-            <!-- Вкладка Профиль -->
+            <!-- Экран Профиль -->
             <div id="screen-profile" class="screen">
                 <div class="profile-box">
-                    <h3 id="profile-name" style="color: #38bdf8; margin: 0 0 8px 0;">Имя</h3>
+                    <h3 id="profile-name" style="color: #38bdf8; margin: 0;">Имя</h3>
                     <div id="profile-email" style="color: #94a3b8; font-size: 14px;">email@gmail.com</div>
-                    <button class="profile-btn-logout" onclick="logout()">Выйти из аккаунта</button>
+                    
+                    <div id="account-status" class="status-badge">Аккаунт активен</div>
+
+                    <div id="action-buttons" style="margin-top: 10px;">
+                        <button id="btn-delete-acc" class="btn-danger" onclick="requestDeleteAccount()">Удалить аккаунт (14 дней)</button>
+                        <button id="btn-restore-acc" class="btn-success" onclick="restoreAccount()" style="display: none;">Восстановить аккаунт</button>
+                    </div>
+
+                    <button class="btn-danger" style="background: #475569; margin-top: 5px;" onclick="logout()">Выйти из системы</button>
                 </div>
             </div>
         </div>
@@ -121,7 +131,6 @@
 
         let currentUser = null;
 
-        // Матерные слова для замены
         const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо"];
         function censor(text) {
             let result = text;
@@ -153,7 +162,9 @@
                 fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`)
                     .then(r => r.json())
                     .then(data => {
-                        currentUser = { name: data.name, email: data.email };
+                        // Чистим ID пользователя для базы
+                        const cleanId = data.sub || data.email.replace(/[^a-zA-Z0-9]/g, "_");
+                        currentUser = { name: data.name, email: data.email, id: cleanId };
                         sessionStorage.setItem('bib_user', JSON.stringify(currentUser));
                         window.location.hash = '';
                         initApp();
@@ -168,6 +179,7 @@
             document.getElementById('profile-name').innerText = currentUser.name;
             document.getElementById('profile-email').innerText = currentUser.email;
 
+            checkAccountStatus();
             loadMessages();
         }
 
@@ -212,10 +224,6 @@
             db.ref('messages/' + id).remove();
         }
 
-        function handleKeyPress(e) {
-            if (e.key === 'Enter') sendMessage();
-        }
-
         function loadMessages() {
             const box = document.getElementById('messages');
             db.ref('messages').on('value', snap => {
@@ -241,6 +249,54 @@
                     });
                     box.scrollTop = box.scrollHeight;
                 }
+            });
+        }
+
+        /* Логика удаления и восстановления аккаунта */
+        function checkAccountStatus() {
+            if (!currentUser || !currentUser.id) return;
+            
+            db.ref('users/' + currentUser.id).on('value', snap => {
+                const userData = snap.val();
+                const statusBadge = document.getElementById('account-status');
+                const btnDelete = document.getElementById('btn-delete-acc');
+                const btnRestore = document.getElementById('btn-restore-acc');
+
+                if (userData && userData.deleteAt) {
+                    const daysLeft = Math.ceil((userData.deleteAt - Date.now()) / (1000 * 60 * 60 * 24));
+                    if (daysLeft <= 0) {
+                        alert("Срок хранения истёк. Аккаунт окончательно удален.");
+                        logout();
+                        return;
+                    }
+                    statusBadge.innerText = `Запланировано удаление (осталось дней: ${daysLeft})`;
+                    statusBadge.className = "status-badge deletion";
+                    btnDelete.style.display = "none";
+                    btnRestore.style.display = "block";
+                } else {
+                    statusBadge.innerText = "Аккаунт активен";
+                    statusBadge.className = "status-badge";
+                    btnDelete.style.display = "block";
+                    btnRestore.style.display = "none";
+                }
+            });
+        }
+
+        function requestDeleteAccount() {
+            if (confirm("Вы точно хотите запросить удаление аккаунта? У вас будет 14 дней на восстановление.")) {
+                const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+                const deleteTimestamp = Date.now() + fourteenDaysMs;
+
+                db.ref('users/' + currentUser.id).set({
+                    deleteAt: deleteTimestamp,
+                    email: currentUser.email
+                });
+            }
+        }
+
+        function restoreAccount() {
+            db.ref('users/' + currentUser.id).remove().then(() => {
+                alert("Ваш аккаунт успешно восстановлен!");
             });
         }
     </script>
