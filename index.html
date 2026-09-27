@@ -21,7 +21,7 @@
         #main-app { display: none; width: 100%; height: 100vh; position: relative; flex-direction: column; }
 
         /* Шапка */
-        .top-bar { height: 50px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-weight: bold; }
+        .top-bar { height: 50px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-weight: bold; z-index: 10; }
         .logout-link { color: #ef4444; font-size: 13px; text-decoration: none; cursor: pointer; }
 
         /* Контентная область */
@@ -30,8 +30,8 @@
         .screen { display: none; width: 100%; height: 100%; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* Чат */
-        .messages-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        /* Список сообщений чата */
+        .messages-container { flex: 1; padding: 15px; padding-bottom: 70px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .message { background: #334155; padding: 8px 12px; border-radius: 12px; max-width: 80%; word-break: break-word; align-self: flex-start; }
         .message.my { background: #0284c7; align-self: flex-end; }
         .msg-author { font-size: 11px; font-weight: bold; color: #38bdf8; margin-bottom: 2px; }
@@ -42,10 +42,10 @@
         .message.my .msg-time { color: #e0f2fe; }
         .delete-btn { background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; padding: 0; }
 
-        /* Поле ввода */
-        .input-bar { padding: 10px; background: #1e293b; border-top: 1px solid #334155; display: flex; gap: 8px; z-index: 10; }
-        .input-bar input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; outline: none; }
-        .input-bar button { background: #0284c7; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        /* Панель ввода сообщения над нижней навигацией */
+        .input-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 60px; padding: 10px; background: #1e293b; border-top: 1px solid #334155; display: flex; gap: 8px; align-items: center; z-index: 20; }
+        .input-bar input { flex: 1; height: 40px; padding: 0 12px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; outline: none; }
+        .input-bar button { height: 40px; background: #0284c7; color: #fff; border: none; padding: 0 16px; border-radius: 8px; font-weight: bold; cursor: pointer; white-space: nowrap; }
 
         /* Профиль */
         .profile-box { padding: 20px; text-align: center; margin: auto; background: #1e293b; border-radius: 12px; width: 90%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
@@ -87,7 +87,7 @@
             <div id="screen-chat" class="screen active">
                 <div class="messages-container" id="messages"></div>
                 <div class="input-bar">
-                    <input type="text" id="message-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
+                    <input type="text" id="message-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
                     <button onclick="sendMessage()">Отправить</button>
                 </div>
             </div>
@@ -131,7 +131,8 @@
 
         let currentUser = null;
 
-        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо"];
+        // Фильтр матерных слов (цензура)
+        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо", "пиздец", "ебать", "сучка", "гондон"];
         function censor(text) {
             let result = text;
             badWords.forEach(w => {
@@ -162,7 +163,6 @@
                 fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`)
                     .then(r => r.json())
                     .then(data => {
-                        // Чистим ID пользователя для базы
                         const cleanId = data.sub || data.email.replace(/[^a-zA-Z0-9]/g, "_");
                         currentUser = { name: data.name, email: data.email, id: cleanId };
                         sessionStorage.setItem('bib_user', JSON.stringify(currentUser));
@@ -252,7 +252,7 @@
             });
         }
 
-        /* Логика удаления и восстановления аккаунта */
+        /* Удаление и восстановление аккаунта */
         function checkAccountStatus() {
             if (!currentUser || !currentUser.id) return;
             
