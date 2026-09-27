@@ -31,7 +31,7 @@
         .screen.active { display: flex; }
 
         /* Список сообщений */
-        .messages-container { flex: 1; padding: 15px; padding-bottom: 75px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .messages-container { flex: 1; padding: 15px; padding-bottom: 80px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .message { background: #334155; padding: 8px 12px; border-radius: 12px; max-width: 80%; word-break: break-word; align-self: flex-start; }
         .message.my { background: #0284c7; align-self: flex-end; }
         .msg-author { font-size: 11px; font-weight: bold; color: #38bdf8; margin-bottom: 2px; }
@@ -42,10 +42,10 @@
         .message.my .msg-time { color: #e0f2fe; }
         .delete-btn { background: none; border: none; color: #fca5a5; font-size: 11px; cursor: pointer; padding: 0; }
 
-        /* Блок ввода сообщения (Зафиксирован снизу экрана) */
+        /* Блок ввода сообщения — размещен строго НАД нижней панелью (bottom: 60px) */
         .input-bar { 
-            position: absolute; 
-            bottom: 0; 
+            position: fixed; 
+            bottom: 60px; 
             left: 0; 
             right: 0; 
             height: 65px; 
@@ -59,7 +59,7 @@
         }
         .input-bar input { 
             flex: 1; 
-            height: 42px; 
+            height: 44px; 
             padding: 0 12px; 
             border-radius: 8px; 
             border: 1px solid #475569; 
@@ -69,11 +69,11 @@
             outline: none; 
         }
         .input-bar button { 
-            height: 42px; 
+            height: 44px; 
             background: #0284c7; 
             color: #fff; 
             border: none; 
-            padding: 0 18px; 
+            padding: 0 16px; 
             border-radius: 8px; 
             font-weight: bold; 
             font-size: 14px; 
@@ -121,8 +121,8 @@
             <div id="screen-chat" class="screen active">
                 <div class="messages-container" id="messages"></div>
                 <div class="input-bar">
-                    <input type="text" id="message-input" placeholder="Написать сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-                    <button onclick="sendMessage()">Напечатать</button>
+                    <input type="text" id="message-input" placeholder="Написать..." onkeydown="if(event.key==='Enter') sendMessage()">
+                    <button onclick="sendMessage()">Отправить</button>
                 </div>
             </div>
 
@@ -166,7 +166,7 @@
         let currentUser = null;
 
         // Фильтр цензуры
-        const badWords = ["хуй","пизда","блядь","бля","ебать","ебал","сука","мудак","залупа","гандон","пидор","пидорас"];
+        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо", "пиздец", "ебать", "сучка", "гондон"];
         function censor(text) {
             let result = text;
             badWords.forEach(w => {
