@@ -61,7 +61,7 @@
         .nav-btn { background: none; border: none; color: #94a3b8; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
         .nav-btn.active { color: #38bdf8; }
 
-        /* Модальное окно (предупреждение) */
+        /* Модальное окно (предупреждение для длинных сообщений) */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
         .modal-card { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 300px; width: 90%; text-align: center; border: 1px solid #475569; }
         .modal-card p { font-size: 14px; margin-bottom: 15px; color: #e2e8f0; }
@@ -152,6 +152,7 @@
 
         let currentUser = null;
         let pendingExpandFn = null;
+        const messageTextsStore = {};
 
         const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо", "пиздец", "ебать", "сучка", "гондон"];
         function censor(text) {
@@ -164,7 +165,12 @@
         }
 
         function loginWithGoogle() {
-            const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=token&scope=email%20profile`;
+            const authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
+                "?client_id=" + encodeURIComponent(CLIENT_ID) +
+                "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
+                "&response_type=token" +
+                "&scope=" + encodeURIComponent("email profile");
+            
             window.location.href = authUrl;
         }
 
@@ -286,6 +292,15 @@
             closeModal();
         };
 
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function renderMessageTextHtml(fullText, msgId) {
             const lines = fullText.split('\n');
             const totalLines = lines.length;
@@ -302,8 +317,6 @@
             `;
         }
 
-        const messageTextsStore = {};
-
         function handleToggleText(msgId, totalLines) {
             const textElem = document.getElementById(`text-${msgId}`);
             const btnElem = document.getElementById(`btn-${msgId}`);
@@ -314,13 +327,11 @@
             const isExpanded = btnElem.getAttribute('data-expanded') === 'true';
 
             if (isExpanded) {
-                // Сворачиваем обратно
                 const lines = fullText.split('\n');
                 textElem.innerText = lines.slice(0, 9).join('\n') + '...';
                 btnElem.innerText = "Читать дальше";
                 btnElem.setAttribute('data-expanded', 'false');
             } else {
-                // Раскрываем
                 const expandAction = () => {
                     textElem.innerText = fullText;
                     btnElem.innerText = "Уменьшить";
@@ -334,15 +345,6 @@
                     expandAction();
                 }
             }
-        }
-
-        function escapeHtml(str) {
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
         }
 
         function loadMessages() {
@@ -416,46 +418,49 @@
         function checkAccountStatus() {
             if (!currentUser || !currentUser.id) return;
             
-            db.ref('users/' + currentUser.id).on('value', snap => {
-                const userData = snap.val();
-                const statusBadge = document.getElementById('account-status');
-                const btnDelete = document.getElementById('btn-delete-acc');
-                const btnRestore = document.getElementById('btn-getElementByid('btn-restore-acc');
-                        if (userData && userData.deleteAt) {
-                    const daysLeft = Math.ceil((userData.deleteAt - Date.now()) / (1000 * 60 * 60 * 24));
-                    if (daysLeft <= 0) {
-                        alert("Срок хранения истёк. Аккаунт окончательно удален.");
-                        logout();
-                        return;
-                    }
-                    statusBadge.innerText = `Удаление через: ${daysLeft} дн.`;
-                    statusBadge.className = "status-badge deletion";
-                    btnDelete.style.display = "none";
-                    btnRestore.style.display = "block";
-                } else {
-                    statusBadge.innerText = "Аккаунт активен";
-                    statusBadge.className = "status-badge";
-                    btnDelete.style.display = "block";
-                    btnRestore.style.display = "none";
+            db.ref('users/' + currentUser.id).on('value', snap => 
+                            const userData = snap.val();
+            const statusBadge = document.getElementById('account-status');
+            const btnDelete = document.getElementById('btn-delete-acc');
+            const btnRestore = document.getElementById('btn-restore-acc');
+
+            if (userData && userData.deleteAt) {
+                const daysLeft = Math.ceil((userData.deleteAt - Date.now()) / (1000 * 60 * 60 * 24));
+                if (daysLeft <= 0) {
+                    alert("Срок хранения истёк. Аккаунт окончательно удален.");
+                    logout();
+                    return;
                 }
-            });
-        }
-
-        function requestDeleteAccount() {
-            if (confirm("Удалить аккаунт через 14 дней?")) {
-                const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
-                db.ref('users/' + currentUser.id).set({
-                    deleteAt: Date.now() + fourteenDaysMs,
-                    email: currentUser.email
-                });
+                statusBadge.innerText = `Удаление через: ${daysLeft} дн.`;
+                statusBadge.className = "status-badge deletion";
+                btnDelete.style.display = "none";
+                btnRestore.style.display = "block";
+            } else {
+                statusBadge.innerText = "Аккаунт активен";
+                statusBadge.className = "status-badge";
+                btnDelete.style.display = "block";
+                btnRestore.style.display = "none";
             }
-        }
+        });
+    }
 
-        function restoreAccount() {
-            db.ref('users/' + currentUser.id).remove().then(() => {
-                alert("Аккаунт восстановлен!");
+    function requestDeleteAccount() {
+        if (confirm("Удалить аккаунт через 14 дней?")) {
+            const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
+            db.ref('users/' + currentUser.id).set({
+                deleteAt: Date.now() + fourteenDaysMs,
+                email: currentUser.email
             });
         }
-    </script>
+    }
+
+    function restoreAccount() {
+        db.ref('users/' + currentUser.id).remove().then(() => {
+            alert("Аккаунт восстановлен!");
+        });
+    }
+</script>
 </body>
 </html>
+
+        
