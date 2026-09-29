@@ -143,12 +143,54 @@
     </div>
 
     <script>
-        const firebaseConfig = { databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/" };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+            const firebaseConfig = { databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/" };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-        const CLIENT_ID = "880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com";
-        const REDIRECT_URI = "https://bibchat17-bot.github.io/Bib-Chat/";
+    const CLIENT_ID = "880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com";
+    const REDIRECT_URI = window.location.origin + window.location.pathname;
+
+    function loginWithGoogle() {
+        const params = {
+            client_id: CLIENT_ID,
+            redirect_uri: REDIRECT_URI,
+            response_type: "token",
+            scope: "email profile",
+            prompt: "select_account"
+        };
+        const queryString = new URLSearchParams(params).toString();
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${queryString}`;
+    }
+
+    function handleGoogleCallback() {
+        const hash = window.location.hash;
+        if (hash.includes("access_token")) {
+            const params = new URLSearchParams(hash.replace("#", "?"));
+            const accessToken = params.get("access_token");
+            if (accessToken) {
+                fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.email) {
+                        currentUser = {
+                            id: data.id,
+                            name: data.name || data.email.split("@")[0],
+                            email: data.email,
+                            picture: data.picture
+                        };
+                        history.replaceState(null, "", window.location.pathname);
+                        if (typeof showAppScreen === "function") showAppScreen();
+                    }
+                })
+                .catch(err => console.error("Ошибка авторизации Google:", err));
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", handleGoogleCallback);
+        
 
         let currentUser = null;
         let pendingExpandFn = null;
