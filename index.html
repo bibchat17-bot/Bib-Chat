@@ -3,200 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bib Chat</title>
+    <title>Биб-чат</title>
+
     <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background: #0f172a; color: #fff; height: 100vh; display: flex; flex-direction: column; }
+        body { font-family: sans-serif; background-color: #0f172a; color: #fff; }
 
         /* Вход */
-        .login-container { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; width: 100%; max-width: 320px; text-align: center; }
-        h1 { color: #38bdf8; margin-bottom: 15px; }
-        .btn-google { background: #fff; color: #333; border: none; padding: 12px; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; width: 100%; }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; max-width: 400px; width: 100%; }
+        h1 { color: #38bdf8; margin-bottom: 20px; }
+        .btn-google { background: #fff; color: #000; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
 
         /* Главный экран */
-        #main-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
+        #main-app { display: none; flex-direction: column; height: 100vh; }
 
         /* Шапка */
-        .top-bar { height: 45px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; padding: 0 15px; font-weight: bold; flex-shrink: 0; }
-        .logout-link { color: #ef4444; font-size: 13px; cursor: pointer; }
-
-        /* Основные экраны */
-        .screen { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-        .screen.active { display: flex; }
-
-        /* Список сообщений */
-        .messages-container { flex: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-        .message { background: #334155; padding: 8px 10px; border-radius: 8px; max-width: 85%; word-break: break-word; align-self: flex-start; }
-        .message.my { background: #0284c7; align-self: flex-end; }
-        .msg-author { font-size: 11px; font-weight: bold; color: #38bdf8; }
-        .message.my .msg-author { color: #bae6fd; }
-        .msg-text { font-size: 14px; margin-top: 2px; white-space: pre-wrap; }
-        
-        .toggle-btn { background: none; border: none; color: #38bdf8; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 4px; padding: 0; display: inline-block; }
-        .message.my .toggle-btn { color: #bae6fd; }
-
-        .msg-footer { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-top: 6px; font-size: 10px; color: #94a3b8; }
-        .action-btn { background: none; border: none; font-size: 10px; cursor: pointer; padding: 0; }
-        .fav-btn { color: #facc15; }
-        .delete-btn { color: #fca5a5; }
-
-        /* Блок ввода сообщения */
-        .input-bar { background: #1e293b; border-top: 1px solid #334155; padding: 8px; display: flex; gap: 6px; flex-shrink: 0; }
-        .input-bar textarea { flex: 1; height: 40px; padding: 8px 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; outline: none; resize: none; font-family: inherit; }
-        .input-bar button { height: 40px; background: #0284c7; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; }
-
-        /* Профиль */
-        .profile-box { padding: 20px; text-align: center; margin: auto; background: #1e293b; border-radius: 10px; width: 90%; max-width: 320px; display: flex; flex-direction: column; gap: 10px; }
-        .status-badge { font-size: 12px; padding: 6px; border-radius: 6px; background: #334155; color: #cbd5e1; }
-        .status-badge.deletion { background: #7f1d1d; color: #fca5a5; }
-        .btn-danger { background: #ef4444; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; }
-        .btn-success { background: #22c55e; color: #fff; border: none; padding: 10px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; }
-
-        /* Нижнее меню */
-        .bottom-nav { height: 50px; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; align-items: center; flex-shrink: 0; }
-        .nav-btn { background: none; border: none; color: #94a3b8; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .nav-btn.active { color: #38bdf8; }
-
-        /* Модальное окно (предупреждение для длинных сообщений) */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-card { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 300px; width: 90%; text-align: center; border: 1px solid #475569; }
-        .modal-card p { font-size: 14px; margin-bottom: 15px; color: #e2e8f0; }
-        .modal-buttons { display: flex; gap: 10px; justify-content: center; }
-        .modal-btn { padding: 8px 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; font-size: 13px; }
-        .modal-btn.confirm { background: #0284c7; color: #fff; }
-        .modal-btn.cancel { background: #475569; color: #fff; }
+        .top-bar { height: 45px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; }
+        .logout-link { color: #ef4444; cursor: pointer; text-decoration: underline; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <!-- Модальное окно предупреждения -->
-    <div id="long-msg-modal" class="modal-overlay">
-        <div class="modal-card">
-            <p>Сообщение слишком длинное. Все равно развернуть?</p>
-            <div class="modal-buttons">
-                <button class="modal-btn confirm" id="modal-confirm-btn">Развернуть</button>
-                <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Экран входа -->
     <div id="login-screen" class="login-container">
         <div class="card">
-            <h1>BibChat</h1>
-            <p style="color: #94a3b8; font-size: 13px; margin-bottom: 15px;">Войдите через Google</p>
-            <button class="btn-google" onclick="loginWithGoogle()">Войти через Google</button>
+            <h1>Биб-чат</h1>
+            <button class="btn-google" onclick="loginWithGoogle()">
+                Войти через Google
+            </button>
         </div>
     </div>
 
     <!-- Основное приложение -->
     <div id="main-app">
         <div class="top-bar">
-            <span id="header-title">BibChat</span>
+            <span>Биб-чат</span>
             <span class="logout-link" onclick="logout()">Выйти</span>
         </div>
-
-        <!-- Экран Чат -->
-        <div id="screen-chat" class="screen active">
-            <div class="messages-container" id="messages"></div>
-            <div class="input-bar">
-                <textarea id="message-input" placeholder="Написать..." onkeydown="handleKeyDown(event)"></textarea>
-                <button onclick="sendMessage()">Отправить</button>
-            </div>
-        </div>
-
-        <!-- Экран Избранное -->
-        <div id="screen-favorites" class="screen">
-            <div class="messages-container" id="favorite-messages"></div>
-        </div>
-
-        <!-- Экран Профиль -->
-        <div id="screen-profile" class="screen">
-            <div class="profile-box">
-                <h3 id="profile-name" style="color: #38bdf8; margin: 0;">Имя</h3>
-                <div id="profile-email" style="color: #94a3b8; font-size: 13px;">email@gmail.com</div>
-                <div id="account-status" class="status-badge">Аккаунт активен</div>
-                <div id="action-buttons">
-                    <button id="btn-delete-acc" class="btn-danger" onclick="requestDeleteAccount()">Удалить аккаунт (14 дней)</button>
-                    <button id="btn-restore-acc" class="btn-success" onclick="restoreAccount()" style="display: none;">Восстановить аккаунт</button>
-                </div>
-                <button class="btn-danger" style="background: #475569;" onclick="logout()">Выйти из системы</button>
-            </div>
-        </div>
-
-        <!-- Нижнее меню -->
-        <div class="bottom-nav">
-            <button class="nav-btn active" id="btn-tab-chat" onclick="switchTab('chat')">
-                💬 <span>Чат</span>
-            </button>
-            <button class="nav-btn" id="btn-tab-favorites" onclick="switchTab('favorites')">
-                ⭐ <span>Избранное</span>
-            </button>
-            <button class="nav-btn" id="btn-tab-profile" onclick="switchTab('profile')">
-                👤 <span>Профиль</span>
-            </button>
+        <div style="padding: 20px; text-align: center;">
+            <h2>Добро пожаловать в чат!</h2>
         </div>
     </div>
 
     <script>
-            const firebaseConfig = { databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/" };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+        const firebaseConfig = { databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    const CLIENT_ID = "880927818848-kb4kte7oln0i7jork2h8i95sdknrmmt2.apps.googleusercontent.com";
-    const REDIRECT_URI = window.location.origin + window.location.pathname;
-
-    function loginWithGoogle() {
-        const params = {
-            client_id: CLIENT_ID,
-            redirect_uri: REDIRECT_URI,
-            response_type: "token",
-            scope: "email profile",
-            prompt: "select_account"
-        };
-        const queryString = new URLSearchParams(params).toString();
-        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${queryString}`;
-    }
-
-    function handleGoogleCallback() {
-        const hash = window.location.hash;
-        if (hash.includes("access_token")) {
-            const params = new URLSearchParams(hash.replace("#", "?"));
-            const accessToken = params.get("access_token");
-            if (accessToken) {
-                fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-                    headers: { Authorization: `Bearer ${accessToken}` }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.email) {
-                        currentUser = {
-                            id: data.id,
-                            name: data.name || data.email.split("@")[0],
-                            email: data.email,
-                            picture: data.picture
-                        };
-                        history.replaceState(null, "", window.location.pathname);
-                        if (typeof showAppScreen === "function") showAppScreen();
-                    }
-                })
-                .catch(err => console.error("Ошибка авторизации Google:", err));
-            }
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", handleGoogleCallback);
-        
+        // Авторизация через Firebase Google Auth
+        const provider = new firebase.auth.GoogleAuthProvider();
 
         let currentUser = null;
         let pendingExpandFn = null;
         const messageTextsStore = {};
 
-        const badWords = ["сука", "блять", "пидор", "хуй", "жопа", "нах", "еб", "чмо", "пиздец", "ебать", "сучка", "гондон"];
+        const badWords = ["сука", "блять"];
         function censor(text) {
             let result = text;
             badWords.forEach(w => {
@@ -207,302 +74,48 @@
         }
 
         function loginWithGoogle() {
-            const authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
-                "?client_id=" + encodeURIComponent(CLIENT_ID) +
-                "&redirect_uri=" + encodeURIComponent(REDIRECT_URI) +
-                "&response_type=token" +
-                "&scope=" + encodeURIComponent("email profile");
-            
-            window.location.href = authUrl;
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    const user = result.user;
+                    currentUser = {
+                        id: user.uid,
+                        name: user.displayName || user.email.split("@")[0],
+                        email: user.email,
+                        picture: user.photoURL
+                    };
+                    showAppScreen();
+                })
+                .catch((error) => {
+                    console.error("Ошибка входа:", error);
+                    alert("Ошибка входа: " + error.message);
+                });
         }
 
-        window.onload = function() {
-            const hash = window.location.hash.substring(1);
-            const params = new URLSearchParams(hash);
-            const accessToken = params.get('access_token');
-
-            const saved = sessionStorage.getItem('bib_user');
-            if (saved) {
-                currentUser = JSON.parse(saved);
-                initApp();
-                return;
-            }
-
-            if (accessToken) {
-                fetch(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${accessToken}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        const cleanId = data.sub || data.email.replace(/[^a-zA-Z0-9]/g, "_");
-                        currentUser = { name: data.name, email: data.email, id: cleanId };
-                        sessionStorage.setItem('bib_user', JSON.stringify(currentUser));
-                        window.location.hash = '';
-                        initApp();
-                    });
-            }
-        };
-
-        function initApp() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-app').style.display = 'flex';
-            
-            document.getElementById('profile-name').innerText = currentUser.name;
-            document.getElementById('profile-email').innerText = currentUser.email;
-
-            checkAccountStatus();
-            loadMessages();
-            loadFavorites();
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-
-            if (tab === 'chat') {
-                document.getElementById('screen-chat').classList.add('active');
-                document.getElementById('btn-tab-chat').classList.add('active');
-                document.getElementById('header-title').innerText = "BibChat";
-            } else if (tab === 'favorites') {
-                document.getElementById('screen-favorites').classList.add('active');
-                document.getElementById('btn-tab-favorites').classList.add('active');
-                document.getElementById('header-title').innerText = "Избранное";
-            } else {
-                document.getElementById('screen-profile').classList.add('active');
-                document.getElementById('btn-tab-profile').classList.add('active');
-                document.getElementById('header-title').innerText = "Профиль";
-            }
+        function showAppScreen() {
+            document.getElementById("login-screen").style.display = "none";
+            document.getElementById("main-app").style.display = "flex";
         }
 
         function logout() {
-            sessionStorage.removeItem('bib_user');
-            window.location.href = REDIRECT_URI;
-        }
-
-        function handleKeyDown(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('message-input');
-            let txt = input.value.trim();
-            if (!txt || !currentUser) return;
-
-            txt = censor(txt);
-            const now = new Date();
-            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-
-            db.ref('messages').push({
-                name: currentUser.name,
-                text: txt,
-                time: timeStr
-            });
-            input.value = '';
-        }
-
-        function deleteMessage(id) {
-            db.ref('messages/' + id).remove();
-        }
-
-        function toggleFavorite(msg) {
-            if (!currentUser) return;
-            const favRef = db.ref(`favorites/${currentUser.id}/${msg.id}`);
-            
-            favRef.once('value', snap => {
-                if (snap.exists()) {
-                    favRef.remove();
-                } else {
-                    favRef.set({
-                        name: msg.name,
-                        text: msg.text,
-                        time: msg.time
-                    });
-                }
+            firebase.auth().signOut().then(() => {
+                currentUser = null;
+                document.getElementById("login-screen").style.display = "flex";
+                document.getElementById("main-app").style.display = "none";
             });
         }
 
-        function closeModal() {
-            document.getElementById('long-msg-modal').style.display = 'none';
-            pendingExpandFn = null;
-        }
-
-        document.getElementById('modal-confirm-btn').onclick = function() {
-            if (pendingExpandFn) {
-                pendingExpandFn();
-            }
-            closeModal();
-        };
-
-        function escapeHtml(str) {
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        function renderMessageTextHtml(fullText, msgId) {
-            const lines = fullText.split('\n');
-            const totalLines = lines.length;
-
-            if (totalLines <= 9) {
-                return `<div class="msg-text">${escapeHtml(fullText)}</div>`;
-            }
-
-            const truncatedText = lines.slice(0, 9).join('\n') + '...';
-
-            return `
-                <div class="msg-text" id="text-${msgId}">${escapeHtml(truncatedText)}</div>
-                <button class="toggle-btn" id="btn-${msgId}" onclick="handleToggleText('${msgId}', ${totalLines})">Читать дальше</button>
-            `;
-        }
-
-        function handleToggleText(msgId, totalLines) {
-            const textElem = document.getElementById(`text-${msgId}`);
-            const btnElem = document.getElementById(`btn-${msgId}`);
-            const fullText = messageTextsStore[msgId];
-
-            if (!textElem || !btnElem || !fullText) return;
-
-            const isExpanded = btnElem.getAttribute('data-expanded') === 'true';
-
-            if (isExpanded) {
-                const lines = fullText.split('\n');
-                textElem.innerText = lines.slice(0, 9).join('\n') + '...';
-                btnElem.innerText = "Читать дальше";
-                btnElem.setAttribute('data-expanded', 'false');
-            } else {
-                const expandAction = () => {
-                    textElem.innerText = fullText;
-                    btnElem.innerText = "Уменьшить";
-                    btnElem.setAttribute('data-expanded', 'true');
+        // Автоматическая проверка состояния авторизации
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = {
+                    id: user.uid,
+                    name: user.displayName || user.email.split("@")[0],
+                    email: user.email,
+                    picture: user.photoURL
                 };
-
-                if (totalLines >= 31) {
-                    pendingExpandFn = expandAction;
-                    document.getElementById('long-msg-modal').style.display = 'flex';
-                } else {
-                    expandAction();
-                }
-            }
-        }
-
-        function loadMessages() {
-            const box = document.getElementById('messages');
-            db.ref('messages').on('value', snap => {
-                box.innerHTML = '';
-                const data = snap.val();
-                if (data) {
-                    Object.entries(data).forEach(([id, msg]) => {
-                        messageTextsStore[id] = msg.text;
-                        const isMy = currentUser && msg.name === currentUser.name;
-                        const div = document.createElement('div');
-                        div.className = `message ${isMy ? 'my' : ''}`;
-                        
-                        let delBtn = isMy ? `<button class="action-btn delete-btn" onclick="deleteMessage('${id}')">Удалить</button>` : '';
-                        const msgObj = JSON.stringify({ id, name: msg.name, text: msg.text, time: msg.time }).replace(/"/g, '&quot;');
-
-                        const textContentHtml = renderMessageTextHtml(msg.text, id);
-
-                        div.innerHTML = `
-                            <div class="msg-author">${escapeHtml(msg.name)}</div>
-                            ${textContentHtml}
-                            <div class="msg-footer">
-                                <span>${msg.time || ''}</span>
-                                <div>
-                                    <button class="action-btn fav-btn" onclick="toggleFavorite(${msgObj})">⭐ В избранное</button>
-                                    ${delBtn}
-                                </div>
-                            </div>
-                        `;
-                        box.appendChild(div);
-                    });
-                    box.scrollTop = box.scrollHeight;
-                }
-            });
-        }
-
-        function loadFavorites() {
-            if (!currentUser) return;
-            const favBox = document.getElementById('favorite-messages');
-            db.ref(`favorites/${currentUser.id}`).on('value', snap => {
-                favBox.innerHTML = '';
-                const data = snap.val();
-                if (data) {
-                    Object.entries(data).forEach(([id, msg]) => {
-                        const favMsgId = 'fav_' + id;
-                        messageTextsStore[favMsgId] = msg.text;
-
-                        const div = document.createElement('div');
-                        div.className = 'message';
-                        const msgObj = JSON.stringify({ id, name: msg.name, text: msg.text, time: msg.time }).replace(/"/g, '&quot;');
-
-                        const textContentHtml = renderMessageTextHtml(msg.text, favMsgId);
-
-                        div.innerHTML = `
-                            <div class="msg-author">${escapeHtml(msg.name)}</div>
-                            ${textContentHtml}
-                            <div class="msg-footer">
-                                <span>${msg.time || ''}</span>
-                                <button class="action-btn delete-btn" onclick="toggleFavorite(${msgObj})">Убрать</button>
-                            </div>
-                        `;
-                        favBox.appendChild(div);
-                    });
-                } else {
-                    favBox.innerHTML = '<div style="text-align:center; color:#94a3b8; margin-top:20px;">В избранном пусто</div>';
-                }
-            });
-        }
-
-        function checkAccountStatus() {
-            if (!currentUser || !currentUser.id) return;
-            
-            db.ref('users/' + currentUser.id).on('value', snap => 
-                            const userData = snap.val();
-            const statusBadge = document.getElementById('account-status');
-            const btnDelete = document.getElementById('btn-delete-acc');
-            const btnRestore = document.getElementById('btn-restore-acc');
-
-            if (userData && userData.deleteAt) {
-                const daysLeft = Math.ceil((userData.deleteAt - Date.now()) / (1000 * 60 * 60 * 24));
-                if (daysLeft <= 0) {
-                    alert("Срок хранения истёк. Аккаунт окончательно удален.");
-                    logout();
-                    return;
-                }
-                statusBadge.innerText = `Удаление через: ${daysLeft} дн.`;
-                statusBadge.className = "status-badge deletion";
-                btnDelete.style.display = "none";
-                btnRestore.style.display = "block";
-            } else {
-                statusBadge.innerText = "Аккаунт активен";
-                statusBadge.className = "status-badge";
-                btnDelete.style.display = "block";
-                btnRestore.style.display = "none";
+                showAppScreen();
             }
         });
-    }
-
-    function requestDeleteAccount() {
-        if (confirm("Удалить аккаунт через 14 дней?")) {
-            const fourteenDaysMs = 14 * 24 * 60 * 60 * 1000;
-            db.ref('users/' + currentUser.id).set({
-                deleteAt: Date.now() + fourteenDaysMs,
-                email: currentUser.email
-            });
-        }
-    }
-
-    function restoreAccount() {
-        db.ref('users/' + currentUser.id).remove().then(() => {
-            alert("Аккаунт восстановлен!");
-        });
-    }
-</script>
+    </script>
 </body>
 </html>
-
-        
