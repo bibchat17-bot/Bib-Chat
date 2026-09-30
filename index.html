@@ -14,7 +14,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background-color: #0f172a; color: #fff; }
 
-        /* Вход */
+        /* Экран входа */
         .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .card { background: #1e293b; padding: 30px; border-radius: 12px; text-align: center; max-width: 400px; width: 100%; }
         h1 { color: #38bdf8; margin-bottom: 20px; }
@@ -52,7 +52,7 @@
     </div>
 
     <script>
-        // Инициализация Firebase с полным конфигом
+        // Инициализация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
             authDomain: "bib-chat-64027.firebaseapp.com",
@@ -66,9 +66,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Настройка провайдера Google
         const provider = new firebase.auth.GoogleAuthProvider();
-
         let currentUser = null;
 
         const badWords = ["сука", "блять"];
@@ -82,21 +80,8 @@
         }
 
         function loginWithGoogle() {
-            firebase.auth().signInWithPopup(provider)
-                .then((result) => {
-                    const user = result.user;
-                    currentUser = {
-                        id: user.uid,
-                        name: user.displayName || user.email.split("@")[0],
-                        email: user.email,
-                        picture: user.photoURL
-                    };
-                    showAppScreen();
-                })
-                .catch((error) => {
-                    console.error("Ошибка входа:", error);
-                    alert("Ошибка входа: " + error.message);
-                });
+            // Перенаправление на вход (работает на смартфонах)
+            firebase.auth().signInWithRedirect(provider);
         }
 
         function showAppScreen() {
@@ -112,7 +97,25 @@
             });
         }
 
-        // Автоматическая проверка состояния авторизации
+        // Обработка возврата после входа Google
+        firebase.auth().getRedirectResult()
+            .then((result) => {
+                if (result.user) {
+                    currentUser = {
+                        id: result.user.uid,
+                        name: result.user.displayName || result.user.email.split("@")[0],
+                        email: result.user.email,
+                        picture: result.user.photoURL
+                    };
+                    showAppScreen();
+                }
+            })
+            .catch((error) => {
+                console.error("Ошибка авторизации:", error);
+                alert("Ошибка входа: " + error.message);
+            });
+
+        // Проверка текущего состояния авторизации
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = {
