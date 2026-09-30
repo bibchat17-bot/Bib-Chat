@@ -18,14 +18,13 @@
         .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .card { background: #1e293b; padding: 30px; border-radius: 16px; text-align: center; max-width: 380px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         h1 { color: #38bdf8; margin-bottom: 20px; font-size: 28px; }
-        .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; transition: background 0.2s; }
-        .btn-google:active { background: #e2e8f0; }
+        .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; }
 
         /* Главный экран */
         #main-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
 
         /* Шапка */
-        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #334155; position: relative; }
+        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #334155; }
         .top-bar h2 { font-size: 18px; color: #38bdf8; }
 
         /* Контент страниц */
@@ -33,40 +32,36 @@
         .page { display: none; flex-direction: column; height: 100%; width: 100%; }
         .page.active { display: flex; }
 
-        /* Вкладка «Чат» */
+        /* Чат */
         .messages-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg-bubble { display: flex; flex-direction: column; max-width: 80%; background: #1e293b; padding: 10px 14px; border-radius: 14px; align-self: flex-start; word-break: break-word; position: relative; }
+        .msg-bubble { display: flex; flex-direction: column; max-width: 80%; background: #1e293b; padding: 10px 14px; border-radius: 14px; align-self: flex-start; word-break: break-word; }
         .msg-bubble.my-msg { align-self: flex-end; background: #0284c7; }
         .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
         .msg-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
         .msg-author { font-size: 12px; font-weight: bold; color: #cbd5e1; }
-        .my-msg .msg-author { color: #e0f2fe; }
         .msg-text { font-size: 15px; line-height: 1.4; margin-bottom: 4px; }
         .msg-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94a3b8; gap: 10px; }
-        .my-msg .msg-footer { color: #bae6fd; }
         .msg-actions { display: flex; gap: 8px; margin-top: 4px; }
-        .msg-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; padding: 2px; }
-        .my-msg .msg-btn { color: #e0f2fe; }
-        .msg-btn:hover { text-decoration: underline; }
+        .msg-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; }
 
-        /* Поле ввода сообщения */
+        /* Поле ввода */
         .chat-input-container { padding: 10px 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; }
         .chat-input { flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px 14px; border-radius: 20px; font-size: 15px; outline: none; }
-        .send-btn { background: #38bdf8; border: none; color: #0f172a; padding: 0 16px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .send-btn { background: #38bdf8; border: none; color: #0f172a; padding: 0 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
         /* Профиль */
         .profile-container { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center; }
         .profile-avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #38bdf8; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: bold; }
         .profile-email { font-size: 14px; color: #94a3b8; margin-bottom: 20px; }
-        .btn-action { width: 100%; max-width: 280px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; transition: opacity 0.2s; }
+        .btn-action { width: 100%; max-width: 280px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; }
         .btn-logout { background: #ef4444; color: #fff; }
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
         .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
-        /* Нижнее меню */
+        /* Навигация */
         .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 11px; user-select: none; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 11px; }
         .nav-item.active { color: #38bdf8; }
         .nav-icon { font-size: 20px; }
     </style>
@@ -85,14 +80,12 @@
 
     <!-- Основное приложение -->
     <div id="main-app">
-        <!-- Шапка -->
         <div class="top-bar">
             <h2 id="page-title">Чат</h2>
         </div>
 
-        <!-- Контент -->
         <div class="content-area">
-            <!-- Вкладка: ЧАТ -->
+            <!-- ЧАТ -->
             <div id="page-chat" class="page active">
                 <div class="messages-list" id="chat-messages"></div>
                 <div class="chat-input-container">
@@ -101,17 +94,17 @@
                 </div>
             </div>
 
-            <!-- Вкладка: ИЗБРАННОЕ -->
+            <!-- ИЗБРАННОЕ -->
             <div id="page-favorites" class="page">
                 <div class="messages-list" id="favorite-messages"></div>
             </div>
 
-            <!-- Вкладка: ПРОФИЛЬ -->
+            <!-- ПРОФИЛЬ -->
             <div id="page-profile" class="page">
                 <div class="profile-container">
                     <img id="profile-img" class="profile-avatar" src="" alt="Avatar">
-                    <div id="profile-name" class="profile-name">Имя пользователя</div>
-                    <div id="profile-email" class="profile-email">email@example.com</div>
+                    <div id="profile-name" class="profile-name">Загрузка...</div>
+                    <div id="profile-email" class="profile-email">...</div>
 
                     <button class="btn-action btn-logout" onclick="logout()">Выйти</button>
                     <button class="btn-action btn-delete" onclick="requestAccountDeletion()">Удалить аккаунт через 14 дней</button>
@@ -120,7 +113,6 @@
             </div>
         </div>
 
-        <!-- Нижняя навигация -->
         <div class="bottom-nav">
             <div class="nav-item active" onclick="switchPage('chat', 'Чат', this)">
                 <span class="nav-icon">💬</span>
@@ -138,7 +130,6 @@
     </div>
 
     <script>
-        // Инициализация Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
             authDomain: "bib-chat-64027.firebaseapp.com",
@@ -179,13 +170,10 @@
 
         function logout() {
             firebase.auth().signOut().then(() => {
-                currentUser = null;
-                document.getElementById("login-screen").style.display = "flex";
-                document.getElementById("main-app").style.display = "none";
+                location.reload();
             });
         }
 
-        // Переключение страниц
         function switchPage(pageId, title, navEl) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -195,14 +183,12 @@
             document.getElementById('page-title').innerText = title;
         }
 
-        // Обновление данных профиля
         function updateProfileUI() {
             if (!currentUser) return;
             document.getElementById('profile-img').src = currentUser.picture || 'https://via.placeholder.com/90';
             document.getElementById('profile-name').innerText = currentUser.name;
             document.getElementById('profile-email').innerText = currentUser.email;
 
-            // Проверка статуса удаления
             db.ref('deletion_requests/' + currentUser.id).once('value', (snap) => {
                 if (snap.exists()) {
                     const req = snap.val();
@@ -212,7 +198,6 @@
             });
         }
 
-        // Запрос удаления аккаунта через 14 дней
         function requestAccountDeletion() {
             if (!currentUser) return;
             if (confirm("Вы уверены, что хотите запросить удаление аккаунта? Аккаунт будет удалён через 14 дней.")) {
@@ -230,7 +215,6 @@
             }
         }
 
-        // Отправка сообщения
         function sendMessage() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
@@ -254,7 +238,6 @@
             input.value = '';
         }
 
-        // Прослушивание сообщений чата в реальном времени
         function listenToMessages() {
             const chatContainer = document.getElementById('chat-messages');
             db.ref('messages').orderByChild('timestamp').on('value', (snapshot) => {
@@ -274,8 +257,8 @@
                         <div class="msg-footer">
                             <span>${msg.time || ''}</span>
                             <div class="msg-actions">
-                                <button class="msg-btn" onclick="toggleFavorite('${msg.id}', '${escapeHtml(msg.text)}', '${msg.senderName}', '${msg.time}')">⭐ В избранное</button>
-                                ${isMine ? `<button class="msg-btn" onclick="deleteMessage('${msg.id}')">🗑️ Удалить</button>` : ''}
+                                <button class="msg-btn" onclick="toggleFavorite('${msg.id}', '${escapeHtml(msg.text)}', '${msg.senderName}', '${msg.time}')">⭐</button>
+                                ${isMine ? `<button class="msg-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>` : ''}
                             </div>
                         </div>
                     `;
@@ -285,36 +268,30 @@
             });
         }
 
-        // Удаление своего сообщения
         function deleteMessage(msgId) {
-            if (confirm("Удалить это сообщение?")) {
+            if (confirm("Удалить сообщение?")) {
                 db.ref('messages/' + msgId).remove();
             }
         }
 
-        // Сохранение в Избранное
         function toggleFavorite(msgId, text, senderName, time) {
             if (!currentUser) return;
-            const favRef = db.ref(`favorites/${currentUser.id}/${msgId}`);
-            favRef.set({
+            db.ref(`favorites/${currentUser.id}/${msgId}`).set({
                 id: msgId,
                 text: text,
                 senderName: senderName,
                 time: time,
                 savedAt: Date.now()
-            }).then(() => {
-                alert("Сохранено в Избранное!");
-            });
+            }).then(() => alert("Сохранено в Избранное!"));
         }
 
-        // Прослушивание Избранного
         function listenToFavorites() {
             if (!currentUser) return;
             const favContainer = document.getElementById('favorite-messages');
             db.ref(`favorites/${currentUser.id}`).on('value', (snapshot) => {
                 favContainer.innerHTML = '';
                 if (!snapshot.exists()) {
-                    favContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #94a3b8;">У вас нет сохранённых сообщений</div>';
+                    favContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #94a3b8;">Нет сохранённых сообщений</div>';
                     return;
                 }
                 snapshot.forEach((childSnap) => {
@@ -322,15 +299,12 @@
                     const msgDiv = document.createElement('div');
                     msgDiv.className = 'msg-bubble';
                     msgDiv.style.width = '100%';
-                    msgDiv.style.maxWidth = '100%';
                     msgDiv.innerHTML = `
-                        <div class="msg-header">
-                            <span class="msg-author">${msg.senderName}</span>
-                        </div>
+                        <div class="msg-header"><span class="msg-author">${msg.senderName}</span></div>
                         <div class="msg-text">${msg.text}</div>
                         <div class="msg-footer">
                             <span>${msg.time || ''}</span>
-                            <button class="msg-btn" onclick="removeFavorite('${msg.id}')">❌ Удалить из избранного</button>
+                            <button class="msg-btn" onclick="removeFavorite('${msg.id}')">❌ Удалить</button>
                         </div>
                     `;
                     favContainer.appendChild(msgDiv);
@@ -348,24 +322,7 @@
             return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
 
-        // Обработка возврата из Google Auth
-        firebase.auth().getRedirectResult()
-            .then((result) => {
-                if (result.user) {
-                    currentUser = {
-                        id: result.user.uid,
-                        name: result.user.displayName || result.user.email.split("@")[0],
-                        email: result.user.email,
-                        picture: result.user.photoURL
-                    };
-                    showAppScreen();
-                }
-            })
-            .catch((error) => {
-                console.error("Ошибка авторизации:", error);
-            });
-
-        // Проверка текущей сессии
+        // Автоматическая проверка авторизации сразу при загрузке
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = {
