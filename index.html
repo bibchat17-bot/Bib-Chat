@@ -14,8 +14,11 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; }
 
+        /* Экран загрузки */
+        #loader-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; font-size: 18px; color: #38bdf8; }
+
         /* Экран входа */
-        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .login-container { display: none; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         .card { background: #1e293b; padding: 30px; border-radius: 16px; text-align: center; max-width: 380px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         h1 { color: #38bdf8; margin-bottom: 20px; font-size: 28px; }
         .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; }
@@ -67,6 +70,9 @@
     </style>
 </head>
 <body>
+
+    <!-- Экран загрузки -->
+    <div id="loader-screen">Загрузка Биб-чата...</div>
 
     <!-- Экран входа -->
     <div id="login-screen" class="login-container">
@@ -157,15 +163,25 @@
         }
 
         function loginWithGoogle() {
-            firebase.auth().signInWithRedirect(provider);
+            firebase.auth().signInWithPopup(provider).catch((error) => {
+                console.warn("Popup blocked or failed, trying redirect...", error);
+                firebase.auth().signInWithRedirect(provider);
+            });
         }
 
         function showAppScreen() {
+            document.getElementById("loader-screen").style.display = "none";
             document.getElementById("login-screen").style.display = "none";
             document.getElementById("main-app").style.display = "flex";
             updateProfileUI();
             listenToMessages();
             listenToFavorites();
+        }
+
+        function showLoginScreen() {
+            document.getElementById("loader-screen").style.display = "none";
+            document.getElementById("login-screen").style.display = "flex";
+            document.getElementById("main-app").style.display = "none";
         }
 
         function logout() {
@@ -322,7 +338,12 @@
             return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
 
-        // Автоматическая проверка авторизации сразу при загрузке
+        // Проверка результата после возможного редиректа
+        firebase.auth().getRedirectResult().catch((error) => {
+            console.error("Redirect Error:", error);
+        });
+
+        // Отслеживание состояния входа
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = {
@@ -332,6 +353,8 @@
                     picture: user.photoURL
                 };
                 showAppScreen();
+            } else {
+                showLoginScreen();
             }
         });
     </script>
