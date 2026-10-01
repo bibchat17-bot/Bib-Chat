@@ -389,54 +389,11 @@
             const btnEveryone = document.getElementById('undo-del-everyone-btn');
 
             if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
-                btnEveryone.style.display = 'inline-block';
-              /* Окно удаления */
-        function openDeleteModal(msgId, senderId) {
-            selectedMsgIdForDelete = msgId;
-            selectedMsgSenderId = senderId;
-            
-            const btnEveryone = document.getElementById('btn-del-everyone');
-            if (currentUser && currentUser.id === senderId) {
-                btnEveryone.style.display = 'block';
-            } else {
+                btnEveryone.style.display = 'inline-block';            } else {
                 btnEveryone.style.display = 'none';
             }
 
-            document.getElementById('delete-modal').classList.add('active');
-        }
-
-        function closeDeleteModal() {
-            selectedMsgIdForDelete = null;
-            selectedMsgSenderId = null;
-            document.getElementById('delete-modal').classList.remove('active');
-        }
-
-        /* Логика удаления "У себя" с таймером 2 минуты */
-        function confirmDeleteSelf() {
-            if (selectedMsgIdForDelete) {
-                lastSelfDeletedMsgId = selectedMsgIdForDelete;
-                lastSelfDeletedSenderId = selectedMsgSenderId;
-                hiddenMessageIds.add(lastSelfDeletedMsgId);
-                closeDeleteModal();
-                listenToMessages();
-
-                startUndoTimer();
-            }
-        }
-
-        function startUndoTimer() {
-            clearInterval(undoTimerInterval);
-            undoSecondsLeft = 120; // 2 минуты
-            const banner = document.getElementById('undo-banner');
-            const timerText = document.getElementById('undo-timer-text');
-            const btnEveryone = document.getElementById('undo-del-everyone-btn');
-
-            if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
-                btnEveryone.style.display = 'inline-block';
-            } else {
-                btnEveryone.style.display = 'none';
-        }
-                    banner.style.display = 'flex';
+            banner.style.display = 'flex';
             timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
 
             undoTimerInterval = setInterval(() => {
@@ -556,3 +513,5 @@
     </script>
 </body>
 </html>
+
+      
