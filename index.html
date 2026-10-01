@@ -14,8 +14,11 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Экран загрузки */
-        #loader-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; font-size: 18px; color: #38bdf8; }
+        /* Экран "Нет соединения" */
+        #no-connection-screen { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px; background: #0f172a; }
+        #no-connection-screen h2 { color: #ef4444; margin-bottom: 10px; font-size: 22px; }
+        #no-connection-screen p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
+        .btn-retry { background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
 
         /* Экран входа */
         .login-container { display: none; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
@@ -24,7 +27,7 @@
         .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; }
 
         /* Главный экран */
-        #main-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
+        #app-screen { display: none; flex-direction: column; height: 100vh; width: 100%; }
 
         /* Шапка */
         .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
@@ -69,7 +72,7 @@
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
         .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
-        /* Нижняя панель навигации (2 кнопки) */
+        /* Нижнее меню */
         .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; flex-shrink: 0; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 12px; }
         .nav-item.active { color: #38bdf8; font-weight: bold; }
@@ -89,8 +92,12 @@
 </head>
 <body>
 
-    <!-- Экран загрузки -->
-    <div id="loader-screen">Загрузка Биб-чата...</div>
+    <!-- Экран "Нет соединения" -->
+    <div id="no-connection-screen">
+        <h2>Нет соединения</h2>
+        <p>Проверьте подключение к интернету или настройку сети.</p>
+        <button class="btn-retry" onclick="checkConnection()">Обновить</button>
+    </div>
 
     <!-- Экран входа -->
     <div id="login-screen" class="login-container">
@@ -103,7 +110,7 @@
     </div>
 
     <!-- Основное приложение -->
-    <div id="main-app">
+    <div id="app-screen">
         <div class="top-bar">
             <h2 id="page-title">Чат</h2>
             <button id="favorites-top-btn" class="top-bar-btn" onclick="openFavoritesModal()">
@@ -223,21 +230,6 @@
             });
         }
 
-        function showAppScreen() {
-            document.getElementById("loader-screen").style.display = "none";
-            document.getElementById("login-screen").style.display = "none";
-            document.getElementById("main-app").style.display = "flex";
-            updateProfileUI();
-            listenToMessages();
-            listenToFavorites();
-        }
-
-        function showLoginScreen() {
-            document.getElementById("loader-screen").style.display = "none";
-            document.getElementById("login-screen").style.display = "flex";
-            document.getElementById("main-app").style.display = "none";
-        }
-
         function logout() {
             firebase.auth().signOut().then(() => {
                 location.reload();
@@ -321,7 +313,7 @@
                 chatContainer.innerHTML = '';
                 snapshot.forEach((childSnap) => {
                     const msg = childSnap.val();
-                    if (hiddenMessageIds.has(msg.id)) return; // Скрыто у себя
+                    if (hiddenMessageIds.has(msg.id)) return;
 
                     const isMine = currentUser && msg.senderId === currentUser.id;
 
@@ -383,17 +375,18 @@
 
         function startUndoTimer() {
             clearInterval(undoTimerInterval);
-            undoSecondsLeft = 120; // 2 минуты
+            undoSecondsLeft = 120;
             const banner = document.getElementById('undo-banner');
             const timerText = document.getElementById('undo-timer-text');
             const btnEveryone = document.getElementById('undo-del-everyone-btn');
 
             if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
-                btnEveryone.style.display = 'inline-block';            } else {
+                btnEveryone.style.display = 'inline-block';
+            } else {
                 btnEveryone.style.display = 'none';
             }
 
-            banner.style.display = 'flex';
+                        banner.style.display = 'flex';
             timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
 
             undoTimerInterval = setInterval(() => {
@@ -489,15 +482,72 @@
             }
         }
 
-        function escapeHtml(str) {
-            return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        /* Мониторинг сети и управления экранами */
+        function showNoConnectionScreen() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'none';
+            document.getElementById('no-connection-screen').style.display = 'flex';
         }
 
+        function hideNoConnectionScreen() {
+            document.getElementById('no-connection-screen').style.display = 'none';
+            if (currentUser) {
+                showAppScreen();
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function checkConnection() {
+            if (!navigator.onLine) {
+                showNoConnectionScreen();
+            } else {
+                hideNoConnectionScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('no-connection-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'flex';
+        }
+
+        function showAppScreen() {
+            document.getElementById('no-connection-screen').style.display = 'none';
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+
+            updateProfileUI();
+            listenToMessages();
+            listenToFavorites();
+        }
+
+        function escapeHtml(str) {
+            return str ? str.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
+        }
+
+        // Отслеживание онлайн/офлайн событий
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', showNoConnectionScreen);
+
+        db.ref('.info/connected').on('value', (snap) => {
+            if (snap.val() === false && currentUser) {
+                showNoConnectionScreen();
+            }
+        });
+
+        /* Авторизация Firebase */
         firebase.auth().getRedirectResult().catch((error) => {
             console.error("Redirect Error:", error);
+            showNoConnectionScreen();
         });
 
         firebase.auth().onAuthStateChanged((user) => {
+            if (!navigator.onLine) {
+                showNoConnectionScreen();
+                return;
+            }
+
             if (user) {
                 currentUser = {
                     id: user.uid,
@@ -513,5 +563,3 @@
     </script>
 </body>
 </html>
-
-      
