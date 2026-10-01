@@ -9,7 +9,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -27,15 +26,15 @@
         .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; }
 
         /* Главный экран */
-        #app-screen { display: none; flex-direction: column; height: 100vh; width: 100%; }
+        #app-screen { display: none; flex-direction: column; height: 100vh; width: 100%; position: relative; }
 
         /* Шапка */
         .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .top-bar h2 { font-size: 18px; color: #38bdf8; }
         .top-bar-btn { background: #334155; color: #38bdf8; border: none; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
-        /* Контент страниц */
-        .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; }
+        /* Контент страниц с отступом под фиксированное меню */
+        .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; padding-bottom: 65px; }
         .page { display: none; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; }
         .page.active { display: flex; }
 
@@ -72,8 +71,8 @@
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
         .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
-        /* Нижнее меню */
-        .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; flex-shrink: 0; }
+        /* Фиксированная нижняя панель */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; z-index: 99; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 12px; }
         .nav-item.active { color: #38bdf8; font-weight: bold; }
         .nav-icon { font-size: 20px; }
@@ -386,7 +385,7 @@
                 btnEveryone.style.display = 'none';
             }
 
-                        banner.style.display = 'flex';
+            banner.style.display = 'flex';
             timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
 
             undoTimerInterval = setInterval(() => {
