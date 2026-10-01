@@ -27,11 +27,12 @@
         #main-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
 
         /* Шапка */
-        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #334155; }
+        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; }
         .top-bar h2 { font-size: 18px; color: #38bdf8; }
+        .top-bar-btn { background: #334155; color: #38bdf8; border: none; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
         /* Контент страниц */
-        .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; }
+        .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; }
         .page { display: none; flex-direction: column; height: 100%; width: 100%; }
         .page.active { display: flex; }
 
@@ -62,11 +63,22 @@
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
         .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
-        /* Навигация */
+        /* Навигация (2 раздела) */
         .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 11px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 12px; }
         .nav-item.active { color: #38bdf8; }
         .nav-icon { font-size: 20px; }
+
+        /* Модальные окна */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+        .modal-overlay.active { display: flex; }
+        .modal-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 320px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #fff; }
+        .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+        .modal-btn { padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .btn-del-all { background: #ef4444; color: #fff; }
+        .btn-del-self { background: #334155; color: #38bdf8; }
+        .btn-cancel { background: transparent; color: #94a3b8; border: 1px solid #334155; }
     </style>
 </head>
 <body>
@@ -87,11 +99,14 @@
     <!-- Основное приложение -->
     <div id="main-app">
         <div class="top-bar">
-            <h2 id="page-title">Чат</h2>
+            <h2 id="page-title">Глобальный чат</h2>
+            <button id="favorites-top-btn" class="top-bar-btn" onclick="openFavoritesModal()">
+                ⭐ Избранное
+            </button>
         </div>
 
         <div class="content-area">
-            <!-- ЧАТ -->
+            <!-- 1. ГЛОБАЛЬНЫЙ ЧАТ -->
             <div id="page-chat" class="page active">
                 <div class="messages-list" id="chat-messages"></div>
                 <div class="chat-input-container">
@@ -100,12 +115,7 @@
                 </div>
             </div>
 
-            <!-- ИЗБРАННОЕ -->
-            <div id="page-favorites" class="page">
-                <div class="messages-list" id="favorite-messages"></div>
-            </div>
-
-            <!-- ПРОФИЛЬ -->
+            <!-- 2. ПРОФИЛЬ -->
             <div id="page-profile" class="page">
                 <div class="profile-container">
                     <img id="profile-img" class="profile-avatar" src="" alt="Avatar">
@@ -119,19 +129,37 @@
             </div>
         </div>
 
+        <!-- Нижнее меню из 2 разделов -->
         <div class="bottom-nav">
-            <div class="nav-item active" onclick="switchPage('chat', 'Чат', this)">
-                <span class="nav-icon">💬</span>
-                <span>Чат</span>
-            </div>
-            <div class="nav-item" onclick="switchPage('favorites', 'Избранное', this)">
-                <span class="nav-icon">⭐</span>
-                <span>Избранное</span>
+            <div class="nav-item active" onclick="switchPage('chat', 'Глобальный чат', this)">
+                <span class="nav-icon">🌐</span>
+                <span>Глобальный чат</span>
             </div>
             <div class="nav-item" onclick="switchPage('profile', 'Профиль', this)">
                 <span class="nav-icon">👤</span>
                 <span>Профиль</span>
             </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Диалог удаления сообщения -->
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Удаление сообщения</div>
+            <div class="modal-btns">
+                <button class="modal-btn btn-del-self" onclick="confirmDeleteSelf()">Удалить у себя</button>
+                <button id="btn-del-everyone" class="modal-btn btn-del-all" onclick="confirmDeleteEveryone()">Удалить для всех</button>
+                <button class="modal-btn btn-cancel" onclick="closeDeleteModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Избранное -->
+    <div id="favorites-modal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 360px; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-title">⭐ Избранное</div>
+            <div class="messages-list" id="favorite-messages" style="flex: 1; text-align: left;"></div>
+            <button class="modal-btn btn-cancel" style="margin-top: 10px;" onclick="closeFavoritesModal()">Закрыть</button>
         </div>
     </div>
 
@@ -151,6 +179,10 @@
         const provider = new firebase.auth.GoogleAuthProvider();
 
         let currentUser = null;
+        let selectedMsgIdForDelete = null;
+        let selectedMsgSenderId = null;
+        let hiddenMessageIds = new Set();
+
         const badWords = ["сука", "блять"];
 
         function censor(text) {
@@ -197,6 +229,14 @@
             document.getElementById('page-' + pageId).classList.add('active');
             navEl.classList.add('active');
             document.getElementById('page-title').innerText = title;
+
+            // Скрываем кнопку Избранного, если открыт Профиль
+            const favBtn = document.getElementById('favorites-top-btn');
+            if (pageId === 'chat') {
+                favBtn.style.display = 'flex';
+            } else {
+                favBtn.style.display = 'none';
+            }
         }
 
         function updateProfileUI() {
@@ -260,6 +300,8 @@
                 chatContainer.innerHTML = '';
                 snapshot.forEach((childSnap) => {
                     const msg = childSnap.val();
+                    if (hiddenMessageIds.has(msg.id)) return; // Скрыто у себя
+
                     const isMine = currentUser && msg.senderId === currentUser.id;
 
                     const msgDiv = document.createElement('div');
@@ -274,7 +316,7 @@
                             <span>${msg.time || ''}</span>
                             <div class="msg-actions">
                                 <button class="msg-btn" onclick="toggleFavorite('${msg.id}', '${escapeHtml(msg.text)}', '${msg.senderName}', '${msg.time}')">⭐</button>
-                                ${isMine ? `<button class="msg-btn" onclick="deleteMessage('${msg.id}')">🗑️</button>` : ''}
+                                <button class="msg-btn" onclick="openDeleteModal('${msg.id}', '${msg.senderId}')">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -284,10 +326,50 @@
             });
         }
 
-        function deleteMessage(msgId) {
-            if (confirm("Удалить сообщение?")) {
-                db.ref('messages/' + msgId).remove();
+        /* Управление модальным окном удаления */
+        function openDeleteModal(msgId, senderId) {
+            selectedMsgIdForDelete = msgId;
+            selectedMsgSenderId = senderId;
+            
+            const btnEveryone = document.getElementById('btn-del-everyone');
+            // Если сообщение не моё, кнопка "Удалить для всех" скрывается
+            if (currentUser && currentUser.id === senderId) {
+                btnEveryone.style.display = 'block';
+            } else {
+                btnEveryone.style.display = 'none';
             }
+
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            selectedMsgIdForDelete = null;
+            selectedMsgSenderId = null;
+            document.getElementById('delete-modal').classList.remove('active');
+        }
+
+        function confirmDeleteSelf() {
+            if (selectedMsgIdForDelete) {
+                hiddenMessageIds.add(selectedMsgIdForDelete);
+                closeDeleteModal();
+                listenToMessages(); // Перерисовать чат
+            }
+        }
+
+        function confirmDeleteEveryone() {
+            if (selectedMsgIdForDelete) {
+                db.ref('messages/' + selectedMsgIdForDelete).remove();
+                closeDeleteModal();
+            }
+        }
+
+        /* Управление модальным окном Избранного */
+        function openFavoritesModal() {
+            document.getElementById('favorites-modal').classList.add('active');
+        }
+
+        function closeFavoritesModal() {
+            document.getElementById('favorites-modal').classList.remove('active');
         }
 
         function toggleFavorite(msgId, text, senderName, time) {
@@ -315,9 +397,11 @@
                     const msgDiv = document.createElement('div');
                     msgDiv.className = 'msg-bubble';
                     msgDiv.style.width = '100%';
+                    msgDiv.style.background = '#0f172a';
+                    msgDiv.style.marginBottom = '10px';
                     msgDiv.innerHTML = `
                         <div class="msg-header"><span class="msg-author">${msg.senderName}</span></div>
-                        <div class="msg-text">${msg.text}</div>
+                                                <div class="msg-text">${msg.text}</div>
                         <div class="msg-footer">
                             <span>${msg.time || ''}</span>
                             <button class="msg-btn" onclick="removeFavorite('${msg.id}')">❌ Удалить</button>
@@ -338,12 +422,10 @@
             return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
 
-        // Проверка результата после возможного редиректа
         firebase.auth().getRedirectResult().catch((error) => {
             console.error("Redirect Error:", error);
         });
 
-        // Отслеживание состояния входа
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = {
