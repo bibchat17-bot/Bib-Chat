@@ -12,7 +12,7 @@
 
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
         /* Экран загрузки */
         #loader-screen { display: flex; justify-content: center; align-items: center; min-height: 100vh; font-size: 18px; color: #38bdf8; }
@@ -27,13 +27,13 @@
         #main-app { display: none; flex-direction: column; height: 100vh; width: 100%; }
 
         /* Шапка */
-        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; }
+        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .top-bar h2 { font-size: 18px; color: #38bdf8; }
         .top-bar-btn { background: #334155; color: #38bdf8; border: none; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
         /* Контент страниц */
         .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; }
-        .page { display: none; flex-direction: column; height: 100%; width: 100%; }
+        .page { display: none; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; }
         .page.active { display: flex; }
 
         /* Чат */
@@ -48,13 +48,19 @@
         .msg-actions { display: flex; gap: 8px; margin-top: 4px; }
         .msg-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; }
 
+        /* Плашка отмены удаления на 2 минуты */
+        .undo-banner { display: none; background: #334155; padding: 8px 12px; border-top: 1px solid #475569; justify-content: space-between; align-items: center; font-size: 12px; color: #f8fafc; }
+        .undo-banner-btns { display: flex; gap: 8px; }
+        .undo-btn { background: #38bdf8; color: #0f172a; border: none; padding: 4px 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; }
+        .undo-btn-danger { background: #ef4444; color: #fff; }
+
         /* Поле ввода */
-        .chat-input-container { padding: 10px 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; }
+        .chat-input-container { padding: 10px 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; flex-shrink: 0; }
         .chat-input { flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px 14px; border-radius: 20px; font-size: 15px; outline: none; }
         .send-btn { background: #38bdf8; border: none; color: #0f172a; padding: 0 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
         /* Профиль */
-        .profile-container { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center; }
+        .profile-container { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center; width: 100%; margin: auto 0; }
         .profile-avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #38bdf8; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: bold; }
         .profile-email { font-size: 14px; color: #94a3b8; margin-bottom: 20px; }
@@ -63,10 +69,10 @@
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
         .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
-        /* Навигация (2 раздела) */
-        .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; }
+        /* Нижняя панель навигации (2 кнопки) */
+        .bottom-nav { height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; flex-shrink: 0; }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 12px; }
-        .nav-item.active { color: #38bdf8; }
+        .nav-item.active { color: #38bdf8; font-weight: bold; }
         .nav-icon { font-size: 20px; }
 
         /* Модальные окна */
@@ -99,16 +105,26 @@
     <!-- Основное приложение -->
     <div id="main-app">
         <div class="top-bar">
-            <h2 id="page-title">Глобальный чат</h2>
+            <h2 id="page-title">Чат</h2>
             <button id="favorites-top-btn" class="top-bar-btn" onclick="openFavoritesModal()">
                 ⭐ Избранное
             </button>
         </div>
 
         <div class="content-area">
-            <!-- 1. ГЛОБАЛЬНЫЙ ЧАТ -->
+            <!-- 1. ЧАТ -->
             <div id="page-chat" class="page active">
                 <div class="messages-list" id="chat-messages"></div>
+                
+                <!-- Плашка восстановления на 2 минуты -->
+                <div id="undo-banner" class="undo-banner">
+                    <span id="undo-timer-text">Удалено у себя (120с)</span>
+                    <div class="undo-banner-btns">
+                        <button class="undo-btn" onclick="restoreSelfDeletedMsg()">Восстановить</button>
+                        <button id="undo-del-everyone-btn" class="undo-btn undo-btn-danger" onclick="confirmDeleteEveryoneFromUndo()">Удалить для всех</button>
+                    </div>
+                </div>
+
                 <div class="chat-input-container">
                     <input type="text" id="msg-input" class="chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
                     <button class="send-btn" onclick="sendMessage()">Отправить</button>
@@ -122,27 +138,27 @@
                     <div id="profile-name" class="profile-name">Загрузка...</div>
                     <div id="profile-email" class="profile-email">...</div>
 
-                    <button class="btn-action btn-logout" onclick="logout()">Выйти</button>
+                    <button class="btn-action btn-logout" onclick="logout()">Выйти из аккаунта</button>
                     <button class="btn-action btn-delete" onclick="requestAccountDeletion()">Удалить аккаунт через 14 дней</button>
                     <div id="delete-status" class="delete-notice"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Нижнее меню из 2 разделов -->
+        <!-- Нижнее меню из 2 кнопок -->
         <div class="bottom-nav">
-            <div class="nav-item active" onclick="switchPage('chat', 'Глобальный чат', this)">
-                <span class="nav-icon">🌐</span>
-                <span>Глобальный чат</span>
+            <div id="nav-chat-btn" class="nav-item active" onclick="switchPage('chat', 'Чат', this)">
+                <span class="nav-icon">💬</span>
+                <span>Чат</span>
             </div>
-            <div class="nav-item" onclick="switchPage('profile', 'Профиль', this)">
+            <div id="nav-profile-btn" class="nav-item" onclick="switchPage('profile', 'Профиль', this)">
                 <span class="nav-icon">👤</span>
                 <span>Профиль</span>
             </div>
         </div>
     </div>
 
-    <!-- Модальное окно: Диалог удаления сообщения -->
+    <!-- Модальное окно: Выбор удаления -->
     <div id="delete-modal" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-title">Удаление сообщения</div>
@@ -181,7 +197,13 @@
         let currentUser = null;
         let selectedMsgIdForDelete = null;
         let selectedMsgSenderId = null;
+
+        // Удаление у себя с таймером 2 минуты (120с)
         let hiddenMessageIds = new Set();
+        let lastSelfDeletedMsgId = null;
+        let lastSelfDeletedSenderId = null;
+        let undoTimerInterval = null;
+        let undoSecondsLeft = 0;
 
         const badWords = ["сука", "блять"];
 
@@ -230,7 +252,6 @@
             navEl.classList.add('active');
             document.getElementById('page-title').innerText = title;
 
-            // Скрываем кнопку Избранного, если открыт Профиль
             const favBtn = document.getElementById('favorites-top-btn');
             if (pageId === 'chat') {
                 favBtn.style.display = 'flex';
@@ -326,13 +347,12 @@
             });
         }
 
-        /* Управление модальным окном удаления */
+        /* Окно удаления */
         function openDeleteModal(msgId, senderId) {
             selectedMsgIdForDelete = msgId;
             selectedMsgSenderId = senderId;
             
             const btnEveryone = document.getElementById('btn-del-everyone');
-            // Если сообщение не моё, кнопка "Удалить для всех" скрывается
             if (currentUser && currentUser.id === senderId) {
                 btnEveryone.style.display = 'block';
             } else {
@@ -348,11 +368,105 @@
             document.getElementById('delete-modal').classList.remove('active');
         }
 
+        /* Логика удаления "У себя" с таймером 2 минуты */
         function confirmDeleteSelf() {
             if (selectedMsgIdForDelete) {
-                hiddenMessageIds.add(selectedMsgIdForDelete);
+                lastSelfDeletedMsgId = selectedMsgIdForDelete;
+                lastSelfDeletedSenderId = selectedMsgSenderId;
+                hiddenMessageIds.add(lastSelfDeletedMsgId);
                 closeDeleteModal();
-                listenToMessages(); // Перерисовать чат
+                listenToMessages();
+
+                startUndoTimer();
+            }
+        }
+
+        function startUndoTimer() {
+            clearInterval(undoTimerInterval);
+            undoSecondsLeft = 120; // 2 минуты
+            const banner = document.getElementById('undo-banner');
+            const timerText = document.getElementById('undo-timer-text');
+            const btnEveryone = document.getElementById('undo-del-everyone-btn');
+
+            if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
+                btnEveryone.style.display = 'inline-block';
+              /* Окно удаления */
+        function openDeleteModal(msgId, senderId) {
+            selectedMsgIdForDelete = msgId;
+            selectedMsgSenderId = senderId;
+            
+            const btnEveryone = document.getElementById('btn-del-everyone');
+            if (currentUser && currentUser.id === senderId) {
+                btnEveryone.style.display = 'block';
+            } else {
+                btnEveryone.style.display = 'none';
+            }
+
+            document.getElementById('delete-modal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            selectedMsgIdForDelete = null;
+            selectedMsgSenderId = null;
+            document.getElementById('delete-modal').classList.remove('active');
+        }
+
+        /* Логика удаления "У себя" с таймером 2 минуты */
+        function confirmDeleteSelf() {
+            if (selectedMsgIdForDelete) {
+                lastSelfDeletedMsgId = selectedMsgIdForDelete;
+                lastSelfDeletedSenderId = selectedMsgSenderId;
+                hiddenMessageIds.add(lastSelfDeletedMsgId);
+                closeDeleteModal();
+                listenToMessages();
+
+                startUndoTimer();
+            }
+        }
+
+        function startUndoTimer() {
+            clearInterval(undoTimerInterval);
+            undoSecondsLeft = 120; // 2 минуты
+            const banner = document.getElementById('undo-banner');
+            const timerText = document.getElementById('undo-timer-text');
+            const btnEveryone = document.getElementById('undo-del-everyone-btn');
+
+            if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
+                btnEveryone.style.display = 'inline-block';
+            } else {
+                btnEveryone.style.display = 'none';
+        }
+                    banner.style.display = 'flex';
+            timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
+
+            undoTimerInterval = setInterval(() => {
+                undoSecondsLeft--;
+                if (undoSecondsLeft > 0) {
+                    timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
+                } else {
+                    clearInterval(undoTimerInterval);
+                    banner.style.display = 'none';
+                    lastSelfDeletedMsgId = null;
+                }
+            }, 1000);
+        }
+
+        function restoreSelfDeletedMsg() {
+            if (lastSelfDeletedMsgId) {
+                hiddenMessageIds.delete(lastSelfDeletedMsgId);
+                clearInterval(undoTimerInterval);
+                document.getElementById('undo-banner').style.display = 'none';
+                lastSelfDeletedMsgId = null;
+                listenToMessages();
+            }
+        }
+
+        function confirmDeleteEveryoneFromUndo() {
+            if (lastSelfDeletedMsgId) {
+                db.ref('messages/' + lastSelfDeletedMsgId).remove();
+                clearInterval(undoTimerInterval);
+                document.getElementById('undo-banner').style.display = 'none';
+                lastSelfDeletedMsgId = null;
             }
         }
 
@@ -363,7 +477,7 @@
             }
         }
 
-        /* Управление модальным окном Избранного */
+        /* Избранное */
         function openFavoritesModal() {
             document.getElementById('favorites-modal').classList.add('active');
         }
@@ -401,7 +515,7 @@
                     msgDiv.style.marginBottom = '10px';
                     msgDiv.innerHTML = `
                         <div class="msg-header"><span class="msg-author">${msg.senderName}</span></div>
-                                                <div class="msg-text">${msg.text}</div>
+                        <div class="msg-text">${msg.text}</div>
                         <div class="msg-footer">
                             <span>${msg.time || ''}</span>
                             <button class="msg-btn" onclick="removeFavorite('${msg.id}')">❌ Удалить</button>
