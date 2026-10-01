@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
@@ -33,7 +34,7 @@
         .top-bar h2 { font-size: 18px; color: #38bdf8; }
         .top-bar-btn { background: #334155; color: #38bdf8; border: none; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
-        /* Контент страниц с отступом под фиксированное меню */
+        /* Контент страниц */
         .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; padding-bottom: 65px; }
         .page { display: none; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; }
         .page.active { display: flex; }
@@ -45,9 +46,9 @@
         .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
         .msg-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
         .msg-author { font-size: 12px; font-weight: bold; color: #cbd5e1; }
-        .msg-text { font-size: 15px; line-height: 1.4; margin-bottom: 4px; }
-        .msg-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94a3b8; gap: 10px; }
-        .msg-actions { display: flex; gap: 8px; margin-top: 4px; }
+        .msg-text { font-size: 15px; line-height: 1.4; margin-bottom: 4px; white-space: pre-wrap; }
+        .msg-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94a3b8; gap: 10px; margin-top: 4px; }
+        .msg-actions { display: flex; gap: 8px; }
         .msg-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; }
 
         /* Плашка отмены удаления на 2 минуты */
@@ -57,26 +58,18 @@
         .undo-btn-danger { background: #ef4444; color: #fff; }
 
         /* Поле ввода */
-        .chat-input-container { 
-    padding: 10px 12px; 
-    background: #1e293b; 
-    display: flex; 
-    gap: 8px; 
-    border-top: 1px solid #334155; 
-    flex-shrink: 0; 
-    margin-bottom: 60px; 
-        }
-        
+        .chat-input-container { padding: 10px 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; flex-shrink: 0; margin-bottom: 60px; }
+        .chat-input { flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px 14px; border-radius: 20px; font-size: 15px; outline: none; }
+        .send-btn { background: #38bdf8; border: none; color: #0f172a; padding: 0 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
 
         /* Профиль */
         .profile-container { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center; width: 100%; margin: auto 0; }
         .profile-avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #38bdf8; object-fit: cover; }
         .profile-name { font-size: 22px; font-weight: bold; }
-        .profile-email { font-size: 14px; color: #94a3b8; margin-bottom: 20px; }
-        .btn-action { width: 100%; max-width: 280px; padding: 12px; border-radius: 12px; border:none; font-weight: bold; cursor: pointer; font-size: 15px; }
+        .profile-email { font-size: 14px; color: #94a3b8; margin-bottom: 10px; }
+        .btn-action { width: 100%; max-width: 280px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; }
         .btn-logout { background: #ef4444; color: #fff; }
         .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
-        .delete-notice { font-size: 12px; color: #f87171; max-width: 280px; margin-top: -5px; }
 
         /* Фиксированная нижняя панель */
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; z-index: 99; padding-bottom: env(safe-area-inset-bottom); }
@@ -87,13 +80,23 @@
         /* Модальные окна */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 320px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 340px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #fff; }
-        .modal-btns { display: flex; flex-direction: column; gap: 10px; }
+        .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
         .modal-btn { padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
         .btn-del-all { background: #ef4444; color: #fff; }
-        .btn-del-self { background: #334155; color: #38bdf8; }
+        .btn-del-self { background: #38bdf8; color: #0f172a; }
         .btn-cancel { background: transparent; color: #94a3b8; border: 1px solid #334155; }
+
+        /* Пароли и длинные сообщения */
+        .setup-box { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+        .setup-box input { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px; outline: none; }
+        .backup-code-box { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: center; font-family: monospace; font-size: 20px; color: #38bdf8; margin: 10px 0; letter-spacing: 2px; }
+
+        .msg-text-collapsed { max-height: 180px; overflow: hidden; position: relative; white-space: pre-wrap; }
+        .msg-text-collapsed::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background: linear-gradient(transparent, #1e293b); }
+        .read-more-btn { background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 4px; padding: 0; text-align: left; }
+        .warning-box { background: #451a03; border: 1px solid #f97316; padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 13px; color: #fdba74; }
     </style>
 </head>
 <body>
@@ -151,9 +154,11 @@
                     <div id="profile-name" class="profile-name">Загрузка...</div>
                     <div id="profile-email" class="profile-email">...</div>
 
-                    <button class="btn-action btn-logout" onclick="logout()">Выйти из аккаунта</button>
+                    <div id="profile-extra-sec" style="width: 100%; max-width: 280px;"></div>
+
+                    <button class="btn-action btn-logout" style="margin-top: 15px;" onclick="logout()">Выйти из аккаунта</button>
                     <button class="btn-action btn-delete" onclick="requestAccountDeletion()">Удалить аккаунт через 14 дней</button>
-                    <div id="delete-status" class="delete-notice"></div>
+                    <div id="delete-status" style="font-size: 12px; color: #f87171; margin-top: 5px;"></div>
                 </div>
             </div>
         </div>
@@ -167,6 +172,50 @@
             <div id="nav-profile-btn" class="nav-item" onclick="switchPage('profile', 'Профиль', this)">
                 <span class="nav-icon">👤</span>
                 <span>Профиль</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Настройка пароля -->
+    <div id="password-setup-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Защита аккаунта</div>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">Вы можете установить пароль сейчас или сделать это позже.</p>
+            <div class="setup-box">
+                <input type="password" id="setup-pass-input" placeholder="Придумайте пароль">
+                <div id="pass-rules-text" style="font-size: 11px; color: #f87171;"></div>
+                <div class="modal-btns">
+                    <button class="modal-btn btn-del-self" onclick="savePasswordSetup()">Сохранить пароль</button>
+                    <button class="modal-btn btn-cancel" onclick="skipPasswordSetup()">Пропустить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Резервный код -->
+    <div id="backup-code-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Код восстановления</div>
+            <p style="font-size: 12px; color: #94a3b8;">Сохраните его! С помощью этого кода можно восстановить доступ, если забудете пароль.</p>
+            <div class="backup-code-box" id="modal-backup-code-text">--------</div>
+            <div class="modal-btns">
+                <button class="modal-btn btn-del-self" onclick="copyBackupCode()">Скопировать код</button>
+                <button class="modal-btn btn-cancel" onclick="closeBackupCodeModal()">Понятно</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно: Восстановление по коду -->
+    <div id="recovery-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-title">Восстановление доступа</div>
+            <div class="setup-box">
+                <input type="text" id="recovery-code-input" placeholder="Введите 8-значный код">
+                <input type="password" id="recovery-new-pass-input" placeholder="Новый пароль">
+                <div class="modal-btns">
+                    <button class="modal-btn btn-del-self" onclick="confirmRecovery()">Восстановить</button>
+                    <button class="modal-btn btn-cancel" onclick="closeRecoveryModal()">Отмена</button>
+                </div>
             </div>
         </div>
     </div>
@@ -211,12 +260,15 @@
         let selectedMsgIdForDelete = null;
         let selectedMsgSenderId = null;
 
-        // Удаление у себя с таймером 2 минуты (120с)
         let hiddenMessageIds = new Set();
         let lastSelfDeletedMsgId = null;
         let lastSelfDeletedSenderId = null;
         let undoTimerInterval = null;
         let undoSecondsLeft = 0;
+
+        let userBackupCode = null;
+        let expandedMessages = new Set();
+        let confirmedLongMessages = new Set();
 
         const badWords = ["сука", "блять"];
 
@@ -229,17 +281,27 @@
             return result;
         }
 
+        /* Правила для пароля */
+        function validatePassword(pass) {
+            if (pass.length < 7) return "Пароль должен быть от 7 символов!";
+            if (!/\d/.test(pass)) return "Пароль должен содержать хотя бы одну цифру!";
+            if (!/[A-Z]/.test(pass) || !/[a-z]/.test(pass)) return "Нужны заглавные и строчные латинские буквы!";
+            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)) return "Добавьте хотя бы один спецсимвол (!@#$%^&*)!";
+            return null;
+        }
+
+        function generateRandomCode() {
+            return Math.floor(10000000 + Math.random() * 90000000).toString();
+        }
+
         function loginWithGoogle() {
-            firebase.auth().signInWithPopup(provider).catch((error) => {
-                console.warn("Popup blocked or failed, trying redirect...", error);
+            firebase.auth().signInWithPopup(provider).catch(() => {
                 firebase.auth().signInWithRedirect(provider);
             });
         }
 
         function logout() {
-            firebase.auth().signOut().then(() => {
-                location.reload();
-            });
+            firebase.auth().signOut().then(() => location.reload());
         }
 
         function switchPage(pageId, title, navEl) {
@@ -251,49 +313,114 @@
             document.getElementById('page-title').innerText = title;
 
             const favBtn = document.getElementById('favorites-top-btn');
-            if (pageId === 'chat') {
-                favBtn.style.display = 'flex';
-            } else {
-                favBtn.style.display = 'none';
-            }
+            favBtn.style.display = (pageId === 'chat') ? 'flex' : 'none';
         }
 
-        function updateProfileUI() {
-            if (!currentUser) return;
-            document.getElementById('profile-img').src = currentUser.picture || 'https://via.placeholder.com/90';
-            document.getElementById('profile-name').innerText = currentUser.name;
-            document.getElementById('profile-email').innerText = currentUser.email;
+        function handlePostLogin(user) {
+            db.ref('users/' + user.uid).once('value', (snap) => {
+                const userData = snap.val() || {};
+                
+                if (!userData.backupCode) {
+                    userBackupCode = generateRandomCode();
+                    db.ref('users/' + user.uid + '/backupCode').set(userBackupCode);
+                } else {
+                    userBackupCode = userData.backupCode;
+                }
 
-            db.ref('deletion_requests/' + currentUser.id).once('value', (snap) => {
-                if (snap.exists()) {
-                    const req = snap.val();
-                    const daysLeft = Math.ceil((req.scheduledAt - Date.now()) / (1000 * 60 * 60 * 24));
-                    document.getElementById('delete-status').innerText = `Заявка принята. Аккаунт будет удалён через ${daysLeft > 0 ? daysLeft : 0} дн.`;
+                if (!userData.passwordConfigured && !userData.skippedPassword) {
+                    document.getElementById('password-setup-modal').classList.add('active');
+                } else {
+                    showAppScreen();
                 }
             });
         }
 
-        function requestAccountDeletion() {
-            if (!currentUser) return;
-            if (confirm("Вы уверены, что хотите запросить удаление аккаунта? Аккаунт будет удалён через 14 дней.")) {
-                const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
-                const scheduledDate = Date.now() + fourteenDaysInMs;
-                db.ref('deletion_requests/' + currentUser.id).set({
-                    userId: currentUser.id,
-                    email: currentUser.email,
-                    requestedAt: Date.now(),
-                    scheduledAt: scheduledDate
-                }).then(() => {
-                    alert("Заявка создана. Аккаунт автоматически удалится через 14 дней.");
-                    updateProfileUI();
-                });
+        function savePasswordSetup() {
+            const pass = document.getElementById('setup-pass-input').value;
+            const err = validatePassword(pass);
+            const errText = document.getElementById('pass-rules-text');
+
+            if (err) {
+                errText.innerText = err;
+                return;
             }
+
+            db.ref('users/' + currentUser.id).update({
+                password: pass,
+                passwordConfigured: true
+            }).then(() => {
+                document.getElementById('password-setup-modal').classList.remove('active');
+                showBackupCodeModal(userBackupCode);
+            });
+        }
+
+        function skipPasswordSetup() {
+            db.ref('users/' + currentUser.id).update({
+                skippedPassword: true
+            }).then(() => {
+                document.getElementById('password-setup-modal').classList.remove('active');
+                showBackupCodeModal(userBackupCode);        function showBackupCodeModal(code) {
+            document.getElementById('modal-backup-code-text').innerText = code;
+            document.getElementById('backup-code-modal').classList.add('active');
+        }
+
+        function closeBackupCodeModal() {
+            document.getElementById('backup-code-modal').classList.remove('active');
+            showAppScreen();
+        }
+
+        function copyBackupCode() {
+            navigator.clipboard.writeText(userBackupCode).then(() => {
+                alert("Код скопирован в буфер обмена!");
+            });
+        }
+
+        function openRecoveryModal() {
+            document.getElementById('recovery-modal').classList.add('active');
+        }
+
+        function closeRecoveryModal() {
+            document.getElementById('recovery-modal').classList.remove('active');
+        }
+
+        function confirmRecovery() {
+            const code = document.getElementById('recovery-code-input').value.trim();
+            const newPass = document.getElementById('recovery-new-pass-input').value;
+
+            const err = validatePassword(newPass);
+            if (err) { alert(err); return; }
+
+            db.ref('users/' + currentUser.id).once('value', (snap) => {
+                const data = snap.val();
+                if (data && data.backupCode === code) {
+                    const newCode = generateRandomCode();
+                    userBackupCode = newCode;
+
+                    db.ref('users/' + currentUser.id).update({
+                        password: newPass,
+                        backupCode: newCode,
+                        passwordConfigured: true
+                    }).then(() => {
+                        alert("Пароль успешно изменён! Ваш НОВЫЙ код восстановления: " + newCode);
+                        closeRecoveryModal();
+                        showAppScreen();
+                    });
+                } else {
+                    alert("Неверный код восстановления!");
+                }
+            });
         }
 
         function sendMessage() {
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
             if (!text || !currentUser) return;
+
+            const lineCount = text.split('\n').length;
+            if (lineCount > 500) {
+                alert("Превышен лимит! Сообщение не должно содержать более 500 строк.");
+                return;
+            }
 
             const cleanText = censor(text);
             const now = new Date();
@@ -322,6 +449,29 @@
                     if (hiddenMessageIds.has(msg.id)) return;
 
                     const isMine = currentUser && msg.senderId === currentUser.id;
+                    const lines = msg.text.split('\n');
+                    const lineCount = lines.length;
+
+                    let bodyHtml = '';
+
+                    if (lineCount > 40 && !confirmedLongMessages.has(msg.id)) {
+                        bodyHtml = `
+                            <div class="warning-box">
+                                ⚠️ Сообщение очень длинное (${lineCount} строк).
+                                <br><button class="read-more-btn" onclick="confirmShowLongMsg('${msg.id}')">Всё равно посмотреть?</button>
+                            </div>
+                        `;
+                    } else if (lineCount > 10) {
+                        const isExpanded = expandedMessages.has(msg.id);
+                        bodyHtml = `
+                            <div class="${isExpanded ? '' : 'msg-text-collapsed'}">${escapeHtml(msg.text)}</div>
+                            <button class="read-more-btn" onclick="toggleExpandMsg('${msg.id}')">
+                                ${isExpanded ? '▲ Свернуть' : '▼ Читать дальше'}
+                            </button>
+                        `;
+                    } else {
+                        bodyHtml = `<div class="msg-text">${escapeHtml(msg.text)}</div>`;
+                    }
 
                     const msgDiv = document.createElement('div');
                     msgDiv.className = `msg-bubble ${isMine ? 'my-msg' : ''}`;
@@ -330,7 +480,7 @@
                             <img class="msg-avatar" src="${msg.senderPhoto || 'https://via.placeholder.com/22'}" alt="">
                             <span class="msg-author">${msg.senderName}</span>
                         </div>
-                        <div class="msg-text">${msg.text}</div>
+                        ${bodyHtml}
                         <div class="msg-footer">
                             <span>${msg.time || ''}</span>
                             <div class="msg-actions">
@@ -345,17 +495,26 @@
             });
         }
 
-        /* Окно удаления */
+        function confirmShowLongMsg(msgId) {
+            confirmedLongMessages.add(msgId);
+            listenToMessages();
+        }
+
+        function toggleExpandMsg(msgId) {
+            if (expandedMessages.has(msgId)) {
+                expandedMessages.delete(msgId);
+            } else {
+                expandedMessages.add(msgId);
+            }
+            listenToMessages();
+        }
+
         function openDeleteModal(msgId, senderId) {
             selectedMsgIdForDelete = msgId;
             selectedMsgSenderId = senderId;
             
             const btnEveryone = document.getElementById('btn-del-everyone');
-            if (currentUser && currentUser.id === senderId) {
-                btnEveryone.style.display = 'block';
-            } else {
-                btnEveryone.style.display = 'none';
-            }
+            btnEveryone.style.display = (currentUser && currentUser.id === senderId) ? 'block' : 'none';
 
             document.getElementById('delete-modal').classList.add('active');
         }
@@ -366,7 +525,6 @@
             document.getElementById('delete-modal').classList.remove('active');
         }
 
-        /* Логика удаления "У себя" с таймером 2 минуты */
         function confirmDeleteSelf() {
             if (selectedMsgIdForDelete) {
                 lastSelfDeletedMsgId = selectedMsgIdForDelete;
@@ -386,11 +544,7 @@
             const timerText = document.getElementById('undo-timer-text');
             const btnEveryone = document.getElementById('undo-del-everyone-btn');
 
-            if (currentUser && currentUser.id === lastSelfDeletedSenderId) {
-                btnEveryone.style.display = 'inline-block';
-            } else {
-                btnEveryone.style.display = 'none';
-            }
+            btnEveryone.style.display = (currentUser && currentUser.id === lastSelfDeletedSenderId) ? 'inline-block' : 'none';
 
             banner.style.display = 'flex';
             timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
@@ -433,7 +587,6 @@
             }
         }
 
-        /* Избранное */
         function openFavoritesModal() {
             document.getElementById('favorites-modal').classList.add('active');
         }
@@ -488,7 +641,55 @@
             }
         }
 
-        /* Мониторинг сети и управления экранами */
+        function updateProfileUI() {
+            if (!currentUser) return;
+            document.getElementById('profile-img').src = currentUser.picture || 'https://via.placeholder.com/90';
+            document.getElementById('profile-name').innerText = currentUser.name;
+            document.getElementById('profile-email').innerText = currentUser.email;
+
+            db.ref('users/' + currentUser.id).once('value', (snap) => {
+                const data = snap.val() || {};
+                let extraHtml = `<div style="text-align:left; font-size:13px; background:#1e293b; padding:12px; border-radius:10px;">`;
+                
+                extraHtml += `<p style="margin-bottom:8px;"><b>Резервный код:</b> <br><span style="color:#38bdf8; font-family:monospace; font-size:15px;">${data.backupCode || 'Не создан'}</span> <button class="undo-btn" style="margin-left:5px;" onclick="copyBackupCode()">📋 Скопировать</button></p>`;
+                
+                if (!data.passwordConfigured) {
+                    extraHtml += `<p style="margin-top:10px; color:#f87171;">Пароль не установлен! <button class="undo-btn" onclick="document.getElementById('password-setup-modal').classList.add('active')">Установить</button></p>`;
+                } else {
+                    extraHtml += `<p style="margin-top:10px; color:#4ade80;">✓ Пароль установлен</p>`;
+                }
+                extraHtml += `<p style="margin-top:10px;"><button class="undo-btn" onclick="openRecoveryModal()">Забыл пароль?</button></p>`;
+                extraHtml += `</div>`;
+
+                document.getElementById('profile-extra-sec').innerHTML = extraHtml;
+            });
+
+            db.ref('deletion_requests/' + currentUser.id).once('value', (snap) => {
+                if (snap.exists()) {
+                    const req = snap.val();
+                    const daysLeft = Math.ceil((req.scheduledAt - Date.now()) / (1000 * 60 * 60 * 24));
+                    document.getElementById('delete-status').innerText = `Заявка принята. Аккаунт будет удалён через ${daysLeft > 0 ? daysLeft : 0} дн.`;
+                }
+            });
+        }
+
+        function requestAccountDeletion() {
+            if (!currentUser) return;
+            if (confirm("Вы уверены, что хотите запросить удаление аккаунта? Аккаунт будет удалён через 14 дней.")) {
+                const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
+                const scheduledDate = Date.now() + fourteenDaysInMs;
+                db.ref('deletion_requests/' + currentUser.id).set({
+                    userId: currentUser.id,
+                    email: currentUser.email,
+                    requestedAt: Date.now(),
+                    scheduledAt: scheduledDate
+                }).then(() => {
+                    alert("Заявка создана. Аккаунт автоматически удалится через 14 дней.");
+                    updateProfileUI();
+                });
+            }
+        }
+
         function showNoConnectionScreen() {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-screen').style.display = 'none';
@@ -532,7 +733,6 @@
             return str ? str.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
         }
 
-        // Отслеживание онлайн/офлайн событий
         window.addEventListener('online', checkConnection);
         window.addEventListener('offline', showNoConnectionScreen);
 
@@ -542,7 +742,6 @@
             }
         });
 
-        /* Авторизация Firebase */
         firebase.auth().getRedirectResult().catch((error) => {
             console.error("Redirect Error:", error);
             showNoConnectionScreen();
@@ -561,7 +760,7 @@
                     email: user.email,
                     picture: user.photoURL
                 };
-                showAppScreen();
+                handlePostLogin(user);
             } else {
                 showLoginScreen();
             }
@@ -569,3 +768,5 @@
     </script>
 </body>
 </html>
+
+    
