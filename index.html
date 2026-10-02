@@ -1,772 +1,590 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Биб-чат</title>
-
-    <!-- Firebase SDK (v8) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #fff; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-
-        /* Экран "Нет соединения" */
-        #no-connection-screen { display: none; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px; background: #0f172a; }
-        #no-connection-screen h2 { color: #ef4444; margin-bottom: 10px; font-size: 22px; }
-        #no-connection-screen p { color: #94a3b8; font-size: 14px; margin-bottom: 20px; }
-        .btn-retry { background: #38bdf8; color: #0f172a; border: none; padding: 10px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
-
-        /* Экран входа */
-        .login-container { display: none; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-        .card { background: #1e293b; padding: 30px; border-radius: 16px; text-align: center; max-width: 380px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        h1 { color: #38bdf8; margin-bottom: 20px; font-size: 28px; }
-        .btn-google { background: #fff; color: #0f172a; border: none; padding: 14px 20px; border-radius: 12px; font-weight: bold; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; }
-
-        /* Главный экран */
-        #app-screen { display: none; flex-direction: column; height: 100vh; width: 100%; position: relative; }
-
-        /* Шапка */
-        .top-bar { height: 50px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
-        .top-bar h2 { font-size: 18px; color: #38bdf8; }
-        .top-bar-btn { background: #334155; color: #38bdf8; border: none; padding: 6px 12px; border-radius: 16px; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-        /* Контент страниц */
-        .content-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; background: #0f172a; position: relative; padding-bottom: 65px; }
-        .page { display: none; flex-direction: column; height: 100%; width: 100%; overflow-y: auto; }
-        .page.active { display: flex; }
-
-        /* Чат */
-        .messages-list { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
-        .msg-bubble { display: flex; flex-direction: column; max-width: 80%; background: #1e293b; padding: 10px 14px; border-radius: 14px; align-self: flex-start; word-break: break-word; }
-        .msg-bubble.my-msg { align-self: flex-end; background: #0284c7; }
-        .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-        .msg-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
-        .msg-author { font-size: 12px; font-weight: bold; color: #cbd5e1; }
-        .msg-text { font-size: 15px; line-height: 1.4; margin-bottom: 4px; white-space: pre-wrap; }
-        .msg-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #94a3b8; gap: 10px; margin-top: 4px; }
-        .msg-actions { display: flex; gap: 8px; }
-        .msg-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 12px; }
-
-        /* Плашка отмены удаления на 2 минуты */
-        .undo-banner { display: none; background: #334155; padding: 8px 12px; border-top: 1px solid #475569; justify-content: space-between; align-items: center; font-size: 12px; color: #f8fafc; }
-        .undo-banner-btns { display: flex; gap: 8px; }
-        .undo-btn { background: #38bdf8; color: #0f172a; border: none; padding: 4px 8px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; }
-        .undo-btn-danger { background: #ef4444; color: #fff; }
-
-        /* Поле ввода */
-        .chat-input-container { padding: 10px 12px; background: #1e293b; display: flex; gap: 8px; border-top: 1px solid #334155; flex-shrink: 0; margin-bottom: 60px; }
-        .chat-input { flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px 14px; border-radius: 20px; font-size: 15px; outline: none; }
-        .send-btn { background: #38bdf8; border: none; color: #0f172a; padding: 0 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
-
-        /* Профиль */
-        .profile-container { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; gap: 15px; text-align: center; width: 100%; margin: auto 0; }
-        .profile-avatar { width: 90px; height: 90px; border-radius: 50%; border: 3px solid #38bdf8; object-fit: cover; }
-        .profile-name { font-size: 22px; font-weight: bold; }
-        .profile-email { font-size: 14px; color: #94a3b8; margin-bottom: 10px; }
-        .btn-action { width: 100%; max-width: 280px; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 15px; }
-        .btn-logout { background: #ef4444; color: #fff; }
-        .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; margin-top: 10px; }
-
-        /* Фиксированная нижняя панель */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background: #1e293b; display: flex; border-top: 1px solid #334155; z-index: 99; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #94a3b8; cursor: pointer; font-size: 12px; }
-        .nav-item.active { color: #38bdf8; font-weight: bold; }
-        .nav-icon { font-size: 20px; }
-
-        /* Модальные окна */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
-        .modal-overlay.active { display: flex; }
-        .modal-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 340px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .modal-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #fff; }
-        .modal-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .modal-btn { padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; }
-        .btn-del-all { background: #ef4444; color: #fff; }
-        .btn-del-self { background: #38bdf8; color: #0f172a; }
-        .btn-cancel { background: transparent; color: #94a3b8; border: 1px solid #334155; }
-
-        /* Пароли и длинные сообщения */
-        .setup-box { display: flex; flex-direction: column; gap: 10px; text-align: left; }
-        .setup-box input { background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 8px; outline: none; }
-        .backup-code-box { background: #0f172a; padding: 12px; border-radius: 8px; border: 1px dashed #38bdf8; text-align: center; font-family: monospace; font-size: 20px; color: #38bdf8; margin: 10px 0; letter-spacing: 2px; }
-
-        .msg-text-collapsed { max-height: 180px; overflow: hidden; position: relative; white-space: pre-wrap; }
-        .msg-text-collapsed::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background: linear-gradient(transparent, #1e293b); }
-        .read-more-btn { background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 13px; font-weight: bold; margin-top: 4px; padding: 0; text-align: left; }
-        .warning-box { background: #451a03; border: 1px solid #f97316; padding: 10px; border-radius: 8px; margin-top: 5px; font-size: 13px; color: #fdba74; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bib-Chat</title>
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #no-connection-screen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #121212;
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+    #no-connection-screen h2 {
+      margin-bottom: 10px;
+      color: #ff5252;
+    }
+    #login-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #121212;
+      padding: 20px;
+    }
+    .btn {
+      background: #bb86fc;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover {
+      background: #9965f4;
+    }
+    #app-screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+    }
+    header h1 {
+      font-size: 20px;
+    }
+    .header-btns {
+      display: flex;
+      gap: 10px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #e0e0e0;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    #messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      position: relative;
+      word-wrap: break-word;
+    }
+    .message.my {
+      align-self: flex-end;
+      background: #3700b3;
+      color: #fff;
+    }
+    .message.other {
+      align-self: flex-start;
+      background: #2c2c2c;
+      color: #e0e0e0;
+    }
+    .message-sender {
+      font-size: 12px;
+      color: #a0a0a0;
+      margin-bottom: 4px;
+    }
+    .message-text {
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .message-time {
+      font-size: 10px;
+      color: #888;
+      text-align: right;
+      margin-top: 4px;
+    }
+    .message-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      justify-content: flex-end;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .action-btn:hover {
+      color: #fff;
+    }
+    #input-container {
+      background: #1f1f1f;
+      padding: 10px 15px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #333;
+    }
+    #message-input {
+      flex: 1;
+      background: #2c2c2c;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 20px;
+      color: #fff;
+      outline: none;
+    }
+    #send-btn {
+      background: #bb86fc;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background: #2c2c2c;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+    }
+    .modal-content h3 {
+      margin-bottom: 15px;
+    }
+    .modal-btns {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    #undo-banner {
+      display: none;
+      background: #333;
+      color: #fff;
+      padding: 10px 15px;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #444;
+    }
+    #undo-banner button {
+      background: #bb86fc;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Экран "Нет соединения" -->
-    <div id="no-connection-screen">
-        <h2>Нет соединения</h2>
-        <p>Проверьте подключение к интернету или настройку сети.</p>
-        <button class="btn-retry" onclick="checkConnection()">Обновить</button>
+  <div id="no-connection-screen">
+    <h2>Нет подключения к сети</h2>
+    <p>Проверьте соединение с интернетом...</p>
+  </div>
+
+  <div id="login-screen">
+    <h1 style="margin-bottom: 20px;">Bib-Chat</h1>
+    <button class="btn" id="login-btn">Войти через Google</button>
+  </div>
+
+  <div id="app-screen">
+    <header>
+      <h1>Bib-Chat</h1>
+      <div class="header-btns">
+        <button class="icon-btn" onclick="openFavoritesModal()">★</button>
+        <button class="icon-btn" id="profile-btn">👤</button>
+      </div>
+    </header>
+
+    <div id="messages-container"></div>
+
+    <div id="undo-banner">
+      <span id="undo-timer-text">Сообщение удалено</span>
+      <div style="display: flex; gap: 8px;">
+        <button onclick="restoreSelfDeletedMsg()">Отмена</button>
+        <button id="btn-delete-everyone-banner" style="background:#ff5252; color:#fff;" onclick="confirmDeleteEveryoneFromBanner()">Удалить у всех</button>
+      </div>
     </div>
 
-    <!-- Экран входа -->
-    <div id="login-screen" class="login-container">
-        <div class="card">
-            <h1>Биб-чат</h1>
-            <button class="btn-google" onclick="loginWithGoogle()">
-                Войти через Google
-            </button>
-        </div>
+    <div id="input-container">
+      <input type="text" id="message-input" placeholder="Напишите сообщение..." />
+      <button id="send-btn">➔</button>
     </div>
+  </div>
 
-    <!-- Основное приложение -->
-    <div id="app-screen">
-        <div class="top-bar">
-            <h2 id="page-title">Чат</h2>
-            <button id="favorites-top-btn" class="top-bar-btn" onclick="openFavoritesModal()">
-                ⭐ Избранное
-            </button>
-        </div>
-
-        <div class="content-area">
-            <!-- 1. ЧАТ -->
-            <div id="page-chat" class="page active">
-                <div class="messages-list" id="chat-messages"></div>
-                
-                <!-- Плашка восстановления на 2 минуты -->
-                <div id="undo-banner" class="undo-banner">
-                    <span id="undo-timer-text">Удалено у себя (120с)</span>
-                    <div class="undo-banner-btns">
-                        <button class="undo-btn" onclick="restoreSelfDeletedMsg()">Восстановить</button>
-                        <button id="undo-del-everyone-btn" class="undo-btn undo-btn-danger" onclick="confirmDeleteEveryoneFromUndo()">Удалить для всех</button>
-                    </div>
-                </div>
-
-                <div class="chat-input-container">
-                    <input type="text" id="msg-input" class="chat-input" placeholder="Напишите сообщение..." onkeydown="if(event.key==='Enter') sendMessage()">
-                    <button class="send-btn" onclick="sendMessage()">Отправить</button>
-                </div>
-            </div>
-
-            <!-- 2. ПРОФИЛЬ -->
-            <div id="page-profile" class="page">
-                <div class="profile-container">
-                    <img id="profile-img" class="profile-avatar" src="" alt="Avatar">
-                    <div id="profile-name" class="profile-name">Загрузка...</div>
-                    <div id="profile-email" class="profile-email">...</div>
-
-                    <div id="profile-extra-sec" style="width: 100%; max-width: 280px;"></div>
-
-                    <button class="btn-action btn-logout" style="margin-top: 15px;" onclick="logout()">Выйти из аккаунта</button>
-                    <button class="btn-action btn-delete" onclick="requestAccountDeletion()">Удалить аккаунт через 14 дней</button>
-                    <div id="delete-status" style="font-size: 12px; color: #f87171; margin-top: 5px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Нижнее меню из 2 кнопок -->
-        <div class="bottom-nav">
-            <div id="nav-chat-btn" class="nav-item active" onclick="switchPage('chat', 'Чат', this)">
-                <span class="nav-icon">💬</span>
-                <span>Чат</span>
-            </div>
-            <div id="nav-profile-btn" class="nav-item" onclick="switchPage('profile', 'Профиль', this)">
-                <span class="nav-icon">👤</span>
-                <span>Профиль</span>
-            </div>
-        </div>
+  <div id="delete-modal" class="modal">
+    <div class="modal-content">
+      <h3>Удалить сообщение?</h3>
+      <div class="modal-btns">
+        <button class="btn" style="background: #ff5252; color:#fff;" onclick="confirmDeleteSelf()">Удалить у себя</button>
+        <button class="btn" id="btn-delete-everyone" style="background: #d32f2f; color:#fff;" onclick="confirmDeleteEveryone()">Удалить у всех</button>
+        <button class="btn" style="background: #555; color:#fff;" onclick="closeDeleteModal()">Отмена</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Модальное окно: Настройка пароля -->
-    <div id="password-setup-modal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-title">Защита аккаунта</div>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">Вы можете установить пароль сейчас или сделать это позже.</p>
-            <div class="setup-box">
-                <input type="password" id="setup-pass-input" placeholder="Придумайте пароль">
-                <div id="pass-rules-text" style="font-size: 11px; color: #f87171;"></div>
-                <div class="modal-btns">
-                    <button class="modal-btn btn-del-self" onclick="savePasswordSetup()">Сохранить пароль</button>
-                    <button class="modal-btn btn-cancel" onclick="skipPasswordSetup()">Пропустить</button>
-                </div>
-            </div>
-        </div>
+  <div id="favorites-modal" class="modal">
+    <div class="modal-content">
+      <h3>Избранные сообщения</h3>
+      <div id="favorites-container" style="max-height: 300px; overflow-y: auto;"></div>
+      <div class="modal-btns">
+        <button class="btn" style="background: #555; color:#fff;" onclick="closeFavoritesModal()">Закрыть</button>
+      </div>
     </div>
-
-    <!-- Модальное окно: Резервный код -->
-    <div id="backup-code-modal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-title">Код восстановления</div>
-            <p style="font-size: 12px; color: #94a3b8;">Сохраните его! С помощью этого кода можно восстановить доступ, если забудете пароль.</p>
-            <div class="backup-code-box" id="modal-backup-code-text">--------</div>
-            <div class="modal-btns">
-                <button class="modal-btn btn-del-self" onclick="copyBackupCode()">Скопировать код</button>
-                <button class="modal-btn btn-cancel" onclick="closeBackupCodeModal()">Понятно</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Восстановление по коду -->
-    <div id="recovery-modal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-title">Восстановление доступа</div>
-            <div class="setup-box">
-                <input type="text" id="recovery-code-input" placeholder="Введите 8-значный код">
-                <input type="password" id="recovery-new-pass-input" placeholder="Новый пароль">
-                <div class="modal-btns">
-                    <button class="modal-btn btn-del-self" onclick="confirmRecovery()">Восстановить</button>
-                    <button class="modal-btn btn-cancel" onclick="closeRecoveryModal()">Отмена</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Выбор удаления -->
-    <div id="delete-modal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-title">Удаление сообщения</div>
-            <div class="modal-btns">
-                <button class="modal-btn btn-del-self" onclick="confirmDeleteSelf()">Удалить у себя</button>
-                <button id="btn-del-everyone" class="modal-btn btn-del-all" onclick="confirmDeleteEveryone()">Удалить для всех</button>
-                <button class="modal-btn btn-cancel" onclick="closeDeleteModal()">Отмена</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Модальное окно: Избранное -->
-    <div id="favorites-modal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 360px; height: 80vh; display: flex; flex-direction: column;">
-            <div class="modal-title">⭐ Избранное</div>
-            <div class="messages-list" id="favorite-messages" style="flex: 1; text-align: left;"></div>
-            <button class="modal-btn btn-cancel" style="margin-top: 10px;" onclick="closeFavoritesModal()">Закрыть</button>
-        </div>
-    </div>
-
+  </div>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
-            authDomain: "bib-chat-64027.firebaseapp.com",
-            databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
-            projectId: "bib-chat-64027",
-            storageBucket: "bib-chat-64027.firebasestorage.app",
-            messagingSenderId: "381474259253",
-            appId: "1:381474259253:web:b0874af197b70efdf0cc7c",
-            measurementId: "G-4QKXGTJDZW"
+    const firebaseConfig = {
+      // Твой firebaseConfig должен быть здесь
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+    const auth = firebase.auth();
+
+    let currentUser = null;
+    let selectedMsgIdForDelete = null;
+    let selectedMsgSenderId = null;
+    let lastSelfDeletedMsgId = null;
+    let lastSelfDeletedSenderId = null;
+    let undoTimerInterval = null;
+    let undoSecondsLeft = 0;
+    let hiddenMessageIds = new Set();
+    let expandedMessageIds = new Set();
+
+    document.getElementById('login-btn').addEventListener('click', () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithRedirect(provider);
+    });
+
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('message-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || !currentUser) return;
+
+      const msgData = {
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || 'Пользователь',
+        text: text,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      };
+
+      db.ref('messages').push(msgData);
+      input.value = '';
+    }
+
+    function listenToMessages() {
+      db.ref('messages').on('value', (snapshot) => {
+        const container = document.getElementById('messages-container');
+        container.innerHTML = '';
+
+        if (!snapshot.exists()) return;
+
+        snapshot.forEach((childSnap) => {
+          const msgId = childSnap.key;
+          if (hiddenMessageIds.has(msgId)) return;
+
+          const msg = childSnap.val();
+          const isMy = currentUser && msg.senderId === currentUser.uid;
+
+          const msgDiv = document.createElement('div');
+          msgDiv.className = `message ${isMy ? 'my' : 'other'}`;
+
+          const isExpanded = expandedMessageIds.has(msgId);
+          const shortText = escapeHtml(msg.text);
+
+          msgDiv.innerHTML = `
+            <div class="message-sender">${escapeHtml(msg.senderName)}</div>
+            <div class="message-text">${shortText}</div>
+            <div class="message-time">${msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
+            <div class="message-actions">
+              <button class="action-btn" onclick="toggleFavorite('${msgId}', '${escapeHtml(msg.text)}')">★</button>
+              <button class="action-btn" onclick="openDeleteModal('${msgId}', '${msg.senderId}')">🗑</button>
+            </div>
+          `;
+
+          container.appendChild(msgDiv);
+        });
+
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    function toggleExpandMsg(msgId) {
+      if (expandedMessageIds.has(msgId)) {
+        expandedMessageIds.delete(msgId);
+      } else {
+        expandedMessageIds.add(msgId);
+      }
+      listenToMessages();
+    }
+
+    function openDeleteModal(msgId, senderId) {
+      selectedMsgIdForDelete = msgId;
+      selectedMsgSenderId = senderId;
+
+      const btnEveryone = document.getElementById('btn-delete-everyone');
+      btnEveryone.style.display = (currentUser && currentUser.uid === senderId) ? 'block' : 'none';
+
+      document.getElementById('delete-modal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      selectedMsgIdForDelete = null;
+      selectedMsgSenderId = null;
+      document.getElementById('delete-modal').style.display = 'none';
+    }
+
+    function confirmDeleteSelf() {
+      if (selectedMsgIdForDelete) {
+        lastSelfDeletedMsgId = selectedMsgIdForDelete;
+        lastSelfDeletedSenderId = selectedMsgSenderId;
+        hiddenMessageIds.add(lastSelfDeletedMsgId);
+        closeDeleteModal();
+        listenToMessages();
+        startUndoTimer();
+      }
+    }
+
+    function startUndoTimer() {
+      clearInterval(undoTimerInterval);
+      undoSecondsLeft = 120;
+      const banner = document.getElementById('undo-banner');
+      const timerText = document.getElementById('undo-timer-text');
+      const btnEveryone = document.getElementById('btn-delete-everyone-banner');
+
+      btnEveryone.style.display = (currentUser && currentUser.uid === lastSelfDeletedSenderId) ? 'inline-block' : 'none';
+
+      banner.style.display = 'flex';
+      timerText.innerText = `Сообщение удалено (${undoSecondsLeft}с)`;
+
+      undoTimerInterval = setInterval(() => {
+        undoSecondsLeft--;
+        if (undoSecondsLeft > 0) {
+          timerText.innerText = `Сообщение удалено (${undoSecondsLeft}с)`;
+        } else {
+          clearInterval(undoTimerInterval);
+          banner.style.display = 'none';
+          lastSelfDeletedMsgId = null;
+        }
+      }, 1000);
+    }
+
+    function restoreSelfDeletedMsg() {
+      if (lastSelfDeletedMsgId) {
+        hiddenMessageIds.delete(lastSelfDeletedMsgId);
+        clearInterval(undoTimerInterval);
+        document.getElementById('undo-banner').style.display = 'none';
+        lastSelfDeletedMsgId = null;
+        listenToMessages();
+      }
+    }
+
+    function confirmDeleteEveryoneFromBanner() {
+      if (lastSelfDeletedMsgId) {
+        db.ref('messages/' + lastSelfDeletedMsgId).remove();
+        clearInterval(undoTimerInterval);
+        document.getElementById('undo-banner').style.display = 'none';
+        lastSelfDeletedMsgId = null;
+      }
+    }
+
+    function confirmDeleteEveryone() {
+      if (selectedMsgIdForDelete) {
+        db.ref('messages/' + selectedMsgIdForDelete).remove();
+        closeDeleteModal();
+      }
+    }
+
+    function openFavoritesModal() {
+      document.getElementById('favorites-modal').style.display = 'flex';
+      listenToFavorites();
+    }
+
+    function closeFavoritesModal() {
+      document.getElementById('favorites-modal').style.display = 'none';
+    }
+
+    function toggleFavorite(msgId, text) {
+      if (!currentUser) return;
+      const favRef = db.ref(`favorites/${currentUser.uid}/${msgId}`);
+      favRef.once('value', (snap) => {
+        if (snap.exists()) {
+          favRef.remove();
+        } else {
+          favRef.set({ text: text });
+        }
+      });
+    }
+
+    function listenToFavorites() {
+      if (!currentUser) return;
+      const favContainer = document.getElementById('favorites-container');
+      db.ref(`favorites/${currentUser.uid}`).on('value', (snapshot) => {
+        favContainer.innerHTML = '';
+        if (!snapshot.exists()) {
+          favContainer.innerHTML = '<p style="color:#888;">Нет избранных сообщений</p>';
+          return;
+        }
+        snapshot.forEach((childSnap) => {
+          const msg = childSnap.val();
+          const msgDiv = document.createElement('div');
+          msgDiv.className = 'message other';
+          msgDiv.style.width = '100%';
+          msgDiv.style.marginBottom = '8px';
+          msgDiv.innerHTML = `
+            <span>${msg.text}</span>
+            <button class="action-btn" onclick="removeFavorite('${childSnap.key}')">❌</button>
+          `;
+          favContainer.appendChild(msgDiv);
+        });
+      });
+    }
+
+    function removeFavorite(msgId) {
+      if (currentUser) {
+        db.ref(`favorites/${currentUser.uid}/${msgId}`).remove();
+      }
+    }
+
+    function updateProfileUI() {
+      if (!currentUser) return;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'flex';
+      listenToMessages();
+    }
+
+    function showNoConnectionScreen() {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('no-connection-screen').style.display = 'flex';
+    }
+
+    function hideNoConnectionScreen() {
+      document.getElementById('no-connection-screen').style.display = 'none';
+      if (currentUser) {
+        showAppScreen();
+      } else {
+        showLoginScreen();
+      }
+    }
+
+    function checkConnection() {
+      if (!navigator.onLine) {
+        showNoConnectionScreen();
+      } else {
+        hideNoConnectionScreen();
+      }
+    }
+
+    function showLoginScreen() {
+      document.getElementById('no-connection-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+    }
+
+    function showAppScreen() {
+      document.getElementById('no-connection-screen').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app-screen').style.display = 'flex';
+
+      updateProfileUI();
+      listenToMessages();
+      listenToFavorites();
+    }
+
+    function escapeHtml(str) {
+      return str ? str.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+    }
+
+    window.addEventListener('online', checkConnection);
+    window.addEventListener('offline', checkConnection);
+
+    db.ref('.info/connected').on('value', (snap) => {
+      if (snap.val() === false && !navigator.onLine) {
+        showNoConnectionScreen();
+      }
+    });
+
+    firebase.auth().getRedirectResult().catch((error) => {
+      console.error("Redirect Error:", error);
+      showNoConnectionScreen();
+    });
+
+    firebase.auth().onAuthStateChanged((user) => {
+      if (!navigator.onLine) {
+        showNoConnectionScreen();
+        return;
+      }
+
+      if (user) {
+        currentUser = {
+          id: user.uid,
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          picture: user.photoURL
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const provider = new firebase.auth.GoogleAuthProvider();
-
-        let currentUser = null;
-        let selectedMsgIdForDelete = null;
-        let selectedMsgSenderId = null;
-
-        let hiddenMessageIds = new Set();
-        let lastSelfDeletedMsgId = null;
-        let lastSelfDeletedSenderId = null;
-        let undoTimerInterval = null;
-        let undoSecondsLeft = 0;
-
-        let userBackupCode = null;
-        let expandedMessages = new Set();
-        let confirmedLongMessages = new Set();
-
-        const badWords = ["сука", "блять"];
-
-        function censor(text) {
-            let result = text;
-            badWords.forEach(w => {
-                const reg = new RegExp(w, "gi");
-                result = result.replace(reg, "***");
-            });
-            return result;
-        }
-
-        function validatePassword(pass) {
-            if (pass.length < 7) return "Пароль должен быть от 7 символов!";
-            if (!/\d/.test(pass)) return "Пароль должен содержать хотя бы одну цифру!";
-            if (!/[A-Z]/.test(pass) || !/[a-z]/.test(pass)) return "Нужны заглавные и строчные латинские буквы!";
-            if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)) return "Добавьте хотя бы один спецсимвол (!@#$%^&*)!";
-            return null;
-        }
-
-        function generateRandomCode() {
-            return Math.floor(10000000 + Math.random() * 90000000).toString();
-        }
-
-        function loginWithGoogle() {
-            firebase.auth().signInWithPopup(provider).catch(() => {
-                firebase.auth().signInWithRedirect(provider);
-            });
-        }
-
-        function logout() {
-            firebase.auth().signOut().then(() => location.reload());
-        }
-
-        function switchPage(pageId, title, navEl) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            
-            document.getElementById('page-' + pageId).classList.add('active');
-            navEl.classList.add('active');
-            document.getElementById('page-title').innerText = title;
-
-            const favBtn = document.getElementById('favorites-top-btn');
-            favBtn.style.display = (pageId === 'chat') ? 'flex' : 'none';
-        }
-
-        function handlePostLogin(user) {
-            db.ref('users/' + user.uid).once('value', (snap) => {
-                const userData = snap.val() || {};
-                
-                if (!userData.backupCode) {
-                    userBackupCode = generateRandomCode();
-                    db.ref('users/' + user.uid + '/backupCode').set(userBackupCode);
-                } else {
-                    userBackupCode = userData.backupCode;
-                }
-
-                if (!userData.passwordConfigured && !userData.skippedPassword) {
-                    document.getElementById('password-setup-modal').classList.add('active');
-                } else {
-                    showAppScreen();
-                }
-            });
-        }
-
-        function savePasswordSetup() {
-            const pass = document.getElementById('setup-pass-input').value;
-            const err = validatePassword(pass);
-            const errText = document.getElementById('pass-rules-text');
-
-            if (err) {
-                errText.innerText = err;
-                return;
-            }
-
-            db.ref('users/' + currentUser.id).update({
-                password: pass,
-                passwordConfigured: true
-            }).then(() => {
-                document.getElementById('password-setup-modal').classList.remove('active');
-                showBackupCodeModal(userBackupCode);
-            });
-        }
-
-        function skipPasswordSetup() {
-            db.ref('users/' + currentUser.id).update({
-                skippedPassword: true
-            }).then(() => {
-                document.getElementById('password-setup-modal').classList.remove('active');
-                showBackupCodeModal(userBackupCode);
-            });
-        }
-
-        function showBackupCodeModal(code) {
-            document.getElementById('modal-backup-code-text').innerText = code;
-            document.getElementById('backup-code-modal').classList.add('active');
-        }
-
-        function closeBackupCodeModal() {
-            document.getElementById('backup-code-modal').classList.remove('active');
-            showAppScreen();
-        }
-
-        function copyBackupCode() {
-            navigator.clipboard.writeText(userBackupCode).then(() => {
-                alert("Код скопирован в буфер обмена!");
-            });
-        }
-
-        function openRecoveryModal() {
-            document.getElementById('recovery-modal').classList.add('active');
-        }
-
-        function closeRecoveryModal() {
-            document.getElementById('recovery-modal').classList.remove('active');
-        }
-
-        function confirmRecovery() {
-            const code = document.getElementById('recovery-code-input').value.trim();
-            const newPass = document.getElementById('recovery-new-pass-input').value;
-
-            const err = validatePassword(newPass);
-            if (err) { alert(err); return; }
-
-            db.ref('users/' + currentUser.id).once('value', (snap) => {
-                const data = snap.val();
-                if (data && data.backupCode === code) {
-                    const newCode = generateRandomCode();
-                    userBackupCode = newCode;
-
-                    db.ref('users/' + currentUser.id).update({
-                        password: newPass,
-                        backupCode: newCode,
-                        passwordConfigured: true
-                    }).then(() => {
-                        alert("Пароль успешно изменён! Ваш НОВЫЙ код восстановления: " + newCode);
-                        closeRecoveryModal();
-                        showAppScreen();
-                    });
-                } else {
-                    alert("Неверный код восстановления!");
-                }
-            });
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if (!text || !currentUser) return;
-
-            const lineCount = text.split('\n').length;
-            if (lineCount > 500) {
-                alert("Превышен лимит! Сообщение не должно содержать более 500 строк.");
-                return;
-            }
-
-            const cleanText = censor(text);
-            const now = new Date();
-            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            const newMsgRef = db.ref('messages').push();
-            newMsgRef.set({
-                id: newMsgRef.key,
-                senderId: currentUser.id,
-                senderName: currentUser.name,
-                senderPhoto: currentUser.picture || '',
-                text: cleanText,
-                time: timeStr,
-                timestamp: Date.now()
-            });
-
-            input.value = '';
-        }
-
-        function listenToMessages() {
-            const chatContainer = document.getElementById('chat-messages');
-            db.ref('messages').orderByChild('timestamp').on('value', (snapshot) => {
-                chatContainer.innerHTML = '';
-                snapshot.forEach((childSnap) => {
-                    const msg = childSnap.val();
-                    if (hiddenMessageIds.has(msg.id)) return;
-
-                    const isMine = currentUser && msg.senderId === currentUser.id;
-                    const lines = msg.text.split('\n');
-                    const lineCount = lines.length;
-
-                    let bodyHtml = '';
-
-                    if (lineCount > 40 && !confirmedLongMessages.has(msg.id)) {
-                        bodyHtml = `
-                            <div class="warning-box">
-                                ⚠️ Сообщение очень длинное (${lineCount} строк).
-                                <br><button class="read-more-btn" onclick="confirmShowLongMsg('${msg.id}')">Всё равно посмотреть?</button>
-                            </div>
-                        `;
-                    } else if (lineCount > 10) {
-                        const isExpanded = expandedMessages.has(msg.id);
-                        bodyHtml = `
-                            <div class="${isExpanded ? '' : 'msg-text-collapsed'}">${escapeHtml(msg.text)}</div>
-                            <button class="read-more-btn" onclick="toggleExpandMsg('${msg.id}')">
-                                ${isExpanded ? '▲ Свернуть' : '▼ Читать дальше'}
-                            </button>
-                        `;
-                    } else {
-                        bodyHtml = `<div class="msg-text">${escapeHtml(msg.text)}</div>`;
-                    }
-
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = `msg-bubble ${isMine ? 'my-msg' : ''}`;
-                    msgDiv.innerHTML = `
-                        <div class="msg-header">
-                            <img class="msg-avatar" src="${msg.senderPhoto || 'https://via.placeholder.com/22'}" alt="">
-                            <span class="msg-author">${msg.senderName}</span>
-                        </div>
-                        ${bodyHtml}
-                        <div class="msg-footer">
-                            <span>${msg.time || ''}</span>
-                            <div class="msg-actions">
-                                <button class="msg-btn" onclick="toggleFavorite('${msg.id}', '${escapeHtml(msg.text)}', '${msg.senderName}', '${msg.time}')">⭐</button>
-                                <button class="msg-btn" onclick="openDeleteModal('${msg.id}', '${msg.senderId}')">🗑️</button>
-                            </div>
-                        </div>
-                    `;
-                    chatContainer.appendChild(msgDiv);
-                });
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            });
-        }
-
-        function confirmShowLongMsg(msgId) {
-            confirmedLongMessages.add(msgId);
-            listenToMessages();
-        }
-
-        function toggleExpandMsg(msgId) {
-            if (expandedMessages.has(msgId)) {
-                expandedMessages.delete(msgId);
-            } else {
-                expandedMessages.add(msgId);
-            }
-            listenToMessages();
-        }
-
-        function openDeleteModal(msgId, senderId) {
-            selectedMsgIdForDelete = msgId;
-            selectedMsgSenderId = senderId;
-            
-            const btnEveryone = document.getElementById('btn-del-everyone');
-            btnEveryone.style.display = (currentUser && currentUser.id === senderId) ? 'block' : 'none';
-
-            document.getElementById('delete-modal').classList.add('active');
-        }
-
-        function closeDeleteModal() {
-            selectedMsgIdForDelete = null;
-            selectedMsgSenderId = null;
-            document.getElementById('delete-modal').classList.remove('active');
-        }
-
-        function confirmDeleteSelf() {
-            if (selectedMsgIdForDelete) {
-                lastSelfDeletedMsgId = selectedMsgIdForDelete;
-                lastSelfDeletedSenderId = selectedMsgSenderId;
-                hiddenMessageIds.add(lastSelfDeletedMsgId);
-                closeDeleteModal();
-                listenToMessages();
-
-                startUndoTimer();
-            }
-        }
-
-        function startUndoTimer() {
-            clearInterval(undoTimerInterval);
-            undoSecondsLeft = 120;
-            const banner = document.getElementById('undo-banner');
-            const timerText = document.getElementById('undo-timer-text');
-            const btnEveryone = document.getElementById('undo-del-everyone-btn');
-
-            btnEveryone.style.display = (currentUser && currentUser.id === lastSelfDeletedSenderId) ? 'inline-block' : 'none';
-
-            banner.style.display = 'flex';
-            timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
-
-            undoTimerInterval = setInterval(() => {
-                undoSecondsLeft--;
-                if (undoSecondsLeft > 0) {
-                    timerText.innerText = `Сообщение скрыто (${undoSecondsLeft}с)`;
-                } else {
-                    clearInterval(undoTimerInterval);
-                    banner.style.display = 'none';
-                    lastSelfDeletedMsgId = null;
-                }
-            }, 1000);
-        }
-
-        function restoreSelfDeletedMsg() {
-            if (lastSelfDeletedMsgId) {
-                hiddenMessageIds.delete(lastSelfDeletedMsgId);
-                clearInterval(undoTimerInterval);
-                document.getElementById('undo-banner').style.display = 'none';
-                lastSelfDeletedMsgId = null;
-                listenToMessages();
-            }
-        }
-
-        function confirmDeleteEveryoneFromUndo() {
-            if (lastSelfDeletedMsgId) {
-                db.ref('messages/' + lastSelfDeletedMsgId).remove();
-                clearInterval(undoTimerInterval);
-                document.getElementById('undo-banner').style.display = 'none';
-                lastSelfDeletedMsgId = null;
-            }
-        }
-
-        function confirmDeleteEveryone() {
-            if (selectedMsgIdForDelete) {
-                db.ref('messages/' + selectedMsgIdForDelete).remove();
-                closeDeleteModal();
-            }
-        }
-
-        function openFavoritesModal() {
-            document.getElementById('favorites-modal').classList.add('active');
-        }
-
-        function closeFavoritesModal() {
-            document.getElementById('favorites-modal').classList.remove('active');
-        }
-
-        function toggleFavorite(msgId, text, senderName, time) {
-            if (!currentUser) return;
-            db.ref(`favorites/${currentUser.id}/${msgId}`).set({
-                id: msgId,
-                text: text,
-                senderName: senderName,
-                time: time,
-                savedAt: Date.now()
-            }).then(() => alert("Сохранено в Избранное!"));
-        }
-
-        function listenToFavorites() {
-            if (!currentUser) return;
-            const favContainer = document.getElementById('favorite-messages');
-            db.ref(`favorites/${currentUser.id}`).on('value', (snapshot) => {
-                favContainer.innerHTML = '';
-                if (!snapshot.exists()) {
-                    favContainer.innerHTML = '<div style="text-align:center; padding: 20px; color: #94a3b8;">Нет сохранённых сообщений</div>';
-                    return;
-                }
-                snapshot.forEach((childSnap) => {
-                    const msg = childSnap.val();
-                    const msgDiv = document.createElement('div');
-                    msgDiv.className = 'msg-bubble';
-                    msgDiv.style.width = '100%';
-                    msgDiv.style.background = '#0f172a';
-                    msgDiv.style.marginBottom = '10px';
-                    msgDiv.innerHTML = `
-                        <div class="msg-header"><span class="msg-author">${msg.senderName}</span></div>
-                        <div class="msg-text">${msg.text}</div>
-                        <div class="msg-footer">
-                            <span>${msg.time || ''}</span>
-                            <button class="msg-btn" onclick="removeFavorite('${msg.id}')">❌ Удалить</button>
-                        </div>
-                    `;
-                    favContainer.appendChild(msgDiv);
-                });
-            });
-        }
-
-        function removeFavorite(msgId) {
-            if (currentUser) {
-                db.ref(`favorites/${currentUser.id}/${msgId}`).remove();
-            }
-        }
-
-        function updateProfileUI() {
-            if (!currentUser) return;
-            document.getElementById('profile-img').src = currentUser.picture || 'https://via.placeholder.com/90';
-            document.getElementById('profile-name').innerText = currentUser.name;
-            document.getElementById('profile-email').innerText = currentUser.email;
-
-            db.ref('users/' + currentUser.id).once('value', (snap) => {
-                const data = snap.val() || {};
-                let extraHtml = `<div style="text-align:left; font-size:13px; background:#1e293b; padding:12px; border-radius:10px;">`;
-                
-                extraHtml += `<p style="margin-bottom:8px;"><b>Резервный код:</b> <br><span style="color:#38bdf8; font-family:monospace; font-size:15px;">${data.backupCode || 'Не создан'}</span> <button class="undo-btn" style="margin-left:5px;" onclick="copyBackupCode()">📋 Скопировать</button></p>`;
-                
-                if (!data.passwordConfigured) {
-                    extraHtml += `<p style="margin-top:10px; color:#f87171;">Пароль не установлен! <button class="undo-btn" onclick="document.getElementById('password-setup-modal').classList.add('active')">Установить</button></p>`;
-                } else {
-                    extraHtml += `<p style="margin-top:10px; color:#4ade80;">✓ Пароль установлен</p>`;
-                }
-                extraHtml += `<p style="margin-top:10px;"><button class="undo-btn" onclick="openRecoveryModal()">Забыл пароль?</button></p>`;
-                extraHtml += `</div>`;
-
-                document.getElementById('profile-extra-sec').innerHTML = extraHtml;
-            });
-
-            db.ref('deletion_requests/' + currentUser.id).once('value', (snap) => {
-                if (snap.exists()) {
-                    const req = snap.val();
-                    const daysLeft = Math.ceil((req.scheduledAt - Date.now()) / (1000 * 60 * 60 * 24));
-                    document.getElementById('delete-status').innerText = `Заявка принята. Аккаунт будет удалён через ${daysLeft > 0 ? daysLeft : 0} дн.`;
-                }
-            });
-        }
-
-        function requestAccountDeletion() {
-            if (!currentUser) return;
-            if (confirm("Вы уверены, что хотите запросить удаление аккаунта? Аккаунт будет удалён через 14 дней.")) {
-                const fourteenDaysInMs = 14 * 24 * 60 * 60 * 1000;
-                const scheduledDate = Date.now() + fourteenDaysInMs;
-                db.ref('deletion_requests/' + currentUser.id).set({
-                    userId: currentUser.id,
-                    email: currentUser.email,
-                    requestedAt: Date.now(),
-                    scheduledAt: scheduledDate
-                }).then(() => {
-                    alert("Заявка создана. Аккаунт автоматически удалится через 14 дней.");
-                    updateProfileUI();
-                });
-            }
-        }
-
-        function showNoConnectionScreen() {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'none';
-            document.getElementById('no-connection-screen').style.display = 'flex';
-        }
-
-        function hideNoConnectionScreen() {
-            document.getElementById('no-connection-screen').style.display = 'none';
-            if (currentUser) {
-                showAppScreen();
-            } else {
-                showLoginScreen();
-            }
-        }
-
-        function checkConnection() {
-            if (!navigator.onLine) {
-                showNoConnectionScreen();
-            } else {
-                hideNoConnectionScreen();
-            }
-
-        function showLoginScreen() {
-            document.getElementById('no-connection-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'flex';
-        }
-
-        function showAppScreen() {
-            document.getElementById('no-connection-screen').style.display = 'none';
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'flex';
-
-            updateProfileUI();
-            listenToMessages();
-            listenToFavorites();
-        }
-
-        function escapeHtml(str) {
-            return str ? str.replace(/'/g, "\\'").replace(/"/g, "&quot;") : '';
-        }
-
-        window.addEventListener('online', checkConnection);
-        window.addEventListener('offline', showNoConnectionScreen);
-
-        db.ref('.info/connected').on('value', (snap) => {
-            if (snap.val() === false && currentUser) {
-                showNoConnectionScreen();
-            }
-        });
-
-        firebase.auth().getRedirectResult().catch((error) => {
-            console.error("Redirect Error:", error);
-            showNoConnectionScreen();
-        });
-
-        firebase.auth().onAuthStateChanged((user) => {
-            if (!navigator.onLine) {
-                showNoConnectionScreen();
-                return;
-            }
-
-            if (user) {
-                currentUser = {
-                    id: user.uid,
-                    name: user.displayName || user.email.split("@")[0],
-                    email: user.email,
-                    picture: user.photoURL
-                };
-                handlePostLogin(user);
-            } else {
-                showLoginScreen();
-            }
-        });
-    </script>
+        showAppScreen();
+      } else {
+        showLoginScreen();
+      }
+    });
+  </script>
 </body>
 </html>
