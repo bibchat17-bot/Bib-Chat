@@ -281,9 +281,10 @@
       </div>
     </div>
   </div>
-    <script>
+
+  <script>
     const firebaseConfig = {
-      // ВСТАВЬ СВОЙ КЛЮЧ FIREBASE СУДА
+      // НЕ ЗАБУДЬ ВСТАВИТЬ СВОИ КЛЮЧИ FIREBASE
     };
 
     if (!firebase.apps.length) {
@@ -303,13 +304,14 @@
     let expandedMessageIds = new Set();
 
     document.getElementById('login-btn').addEventListener('click', () => {
+      alert("Запрос на вход отправлен...");
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
         .then((result) => {
-          console.log("Успешный вход:", result.user);
+          alert("Успешный вход: " + result.user.displayName);
         })
         .catch((error) => {
-          alert("Ошибка входа: " + error.message);
+          alert("Ошибка Firebase: " + error.message);
         });
     });
 
