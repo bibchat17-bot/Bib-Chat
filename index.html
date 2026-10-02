@@ -281,7 +281,6 @@
             return result;
         }
 
-        /* Правила для пароля */
         function validatePassword(pass) {
             if (pass.length < 7) return "Пароль должен быть от 7 символов!";
             if (!/\d/.test(pass)) return "Пароль должен содержать хотя бы одну цифру!";
@@ -359,7 +358,11 @@
                 skippedPassword: true
             }).then(() => {
                 document.getElementById('password-setup-modal').classList.remove('active');
-                showBackupCodeModal(userBackupCode);        function showBackupCodeModal(code) {
+                showBackupCodeModal(userBackupCode);
+            });
+        }
+
+        function showBackupCodeModal(code) {
             document.getElementById('modal-backup-code-text').innerText = code;
             document.getElementById('backup-code-modal').classList.add('active');
         }
@@ -768,5 +771,3 @@
     </script>
 </body>
 </html>
-
-    
