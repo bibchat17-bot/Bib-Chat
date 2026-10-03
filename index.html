@@ -41,6 +41,10 @@
       align-items: center;
       border-bottom: 1px solid #333;
     }
+    .header-btns {
+      display: flex;
+      gap: 10px;
+    }
     /* Сообщения */
     #messages-container {
       flex: 1;
@@ -71,7 +75,7 @@
       color: #aaa;
       margin-bottom: 3px;
     }
-    /* Нижняя панель ввода */
+    /* Постоянная панель ввода снизу */
     #input-container {
       background: #1f1f1f;
       padding: 10px 15px;
@@ -126,11 +130,15 @@
   <div id="app-screen">
     <header>
       <h2>Bib-Chat</h2>
-      <button class="btn" id="logout-btn" style="padding: 6px 12px; font-size: 12px;">Выйти</button>
+      <div class="header-btns">
+        <button class="btn" id="focus-input-btn" style="padding: 6px 14px; font-size: 13px;">✏️ Написать</button>
+        <button class="btn" id="logout-btn" style="padding: 6px 12px; font-size: 12px; background: #333; color: #fff;">Выйти</button>
+      </div>
     </header>
 
     <div id="messages-container"></div>
 
+    <!-- Поле ввода всегда снизу -->
     <div id="input-container">
       <input type="text" id="message-input" placeholder="Введите сообщение...">
       <button id="send-btn">➤</button>
@@ -161,9 +169,16 @@
     const appScreen = document.getElementById('app-screen');
     const loginBtn = document.getElementById('login-btn');
     const logoutBtn = document.getElementById('logout-btn');
+    const focusInputBtn = document.getElementById('focus-input-btn');
     const sendBtn = document.getElementById('send-btn');
     const messageInput = document.getElementById('message-input');
     const messagesContainer = document.getElementById('messages-container');
+
+    // Кнопка "Написать" ставит курсор в поле ввода снизу
+    focusInputBtn.addEventListener('click', () => {
+      messageInput.focus();
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
 
     // Вход через Redirect
     loginBtn.addEventListener('click', () => {
