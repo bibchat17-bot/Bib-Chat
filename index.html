@@ -75,7 +75,7 @@
       color: #aaa;
       margin-bottom: 3px;
     }
-    /* Постоянная панель ввода снизу */
+    /* Поле ввода снизу */
     #input-container {
       background: #1f1f1f;
       padding: 10px 15px;
@@ -112,11 +112,6 @@
       justify-content: center;
     }
   </style>
-
-  <!-- Firebase SDK v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -138,15 +133,32 @@
 
     <div id="messages-container"></div>
 
-    <!-- Поле ввода всегда снизу -->
     <div id="input-container">
       <input type="text" id="message-input" placeholder="Введите сообщение...">
       <button id="send-btn">➤</button>
     </div>
   </div>
 
-    <script>
-    // Конфигурация Firebase
+  <!-- Современный Firebase v12 Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithRedirect, 
+      getRedirectResult, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+    import { 
+      getDatabase, 
+      ref, 
+      push, 
+      onValue, 
+      query, 
+      limitToLast 
+    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
       authDomain: "bib-chat-64027.firebaseapp.com",
@@ -154,19 +166,13 @@
       projectId: "bib-chat-64027",
       storageBucket: "bib-chat-64027.firebasestorage.app",
       messagingSenderId: "381474259253",
-      appId: "1:381474259253:web:6b6ddb63fffeba31f0cc7c",
-      measurementId: "G-87651911DZ"
+      appId: "1:381474259253:web:bd5269fa68c2a1c5f0cc7c",
+      measurementId: "G-LDWKZH8LW4"
     };
 
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    const auth = firebase.auth();
-    const db = firebase.database();
-
-    // Явно задаем сохранение сессии в браузер
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
 
     const loginScreen = document.getElementById('login-screen');
     const appScreen = document.getElementById('app-screen');
@@ -183,33 +189,36 @@
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
 
-    // Вход через Redirect
+    // Вход через Google
     loginBtn.addEventListener('click', () => {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithRedirect(provider);
+      const provider = new GoogleAuthProvider();
+      signInWithRedirect(auth, provider);
     });
 
     // Выход
-    logoutBtn.addEventListener('click', () => auth.signOut());
+    logoutBtn.addEventListener('click', () => signOut(auth));
 
-    // Проверка результата редиректа при загрузке
-    auth.getRedirectResult().then(result => {
-      if (result && result.user) {
+    // Проверка результата редиректа
+    getRedirectResult(auth).then(result => {
+      if (result?.user) {
         console.log("Успешный вход:", result.user.displayName);
       }
     }).catch(error => {
-      if (error && error.message) {
-        alert("Ошибка авторизации: " + error.message);
+      if (error?.message) {
+        alert("Ошибка входа: " + error.message);
       }
     });
 
-    // Отслеживание состояния пользователя
-    auth.onAuthStateChanged(user => {
+    // Отслеживание входа/выхода
+    let currentUid = null;
+    onAuthStateChanged(auth, user => {
       if (user) {
+        currentUid = user.uid;
         loginScreen.style.display = 'none';
         appScreen.style.display = 'flex';
         loadMessages();
       } else {
+        currentUid = null;
         loginScreen.style.display = 'flex';
         appScreen.style.display = 'none';
       }
@@ -220,7 +229,7 @@
       const text = messageInput.value.trim();
       const user = auth.currentUser;
       if (text && user) {
-        db.ref('messages').push({
+        push(ref(db, 'messages'), {
           uid: user.uid,
           name: user.displayName || 'Аноним',
           text: text,
@@ -237,12 +246,13 @@
 
     // Загрузка сообщений
     function loadMessages() {
-      db.ref('messages').limitToLast(50).on('value', snapshot => {
+      const messagesRef = query(ref(db, 'messages'), limitToLast(50));
+      onValue(messagesRef, snapshot => {
         messagesContainer.innerHTML = '';
         const data = snapshot.val();
         if (data) {
           Object.values(data).forEach(msg => {
-            const isMy = auth.currentUser && msg.uid === auth.currentUser.uid;
+            const isMy = currentUid && msg.uid === currentUid;
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isMy ? 'my' : 'other'}`;
             msgDiv.innerHTML = `
@@ -258,4 +268,3 @@
   </script>
 </body>
 </html>
-
