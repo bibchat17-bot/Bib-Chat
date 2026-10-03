@@ -4,95 +4,44 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bib-Chat</title>
-  
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: #121212;
-      color: #e0e0e0;
+      color: #ffffff;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
     }
-    #no-connection-screen {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #121212;
-      z-index: 9999;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 20px;
-    }
-    #no-connection-screen h2 {
-      margin-bottom: 10px;
-      color: #ff5252;
-    }
+    /* Экраны */
     #login-screen {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
-      background: #121212;
-      padding: 20px;
-    }
-    .btn {
-      background: #bb86fc;
-      color: #000;
-      border: none;
-      padding: 12px 24px;
-      font-size: 16px;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:hover {
-      background: #9965f4;
+      gap: 20px;
     }
     #app-screen {
       display: none;
       flex-direction: column;
       height: 100vh;
     }
+    /* Шапка */
     header {
       background: #1f1f1f;
-      padding: 15px;
+      padding: 15px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid #333;
     }
-    header h1 {
-      font-size: 20px;
-    }
-    .header-btns {
-      display: flex;
-      gap: 10px;
-    }
-    .icon-btn {
-      background: transparent;
-      border: none;
-      color: #e0e0e0;
-      font-size: 20px;
-      cursor: pointer;
-    }
+    /* Сообщения */
     #messages-container {
       flex: 1;
       overflow-y: auto;
@@ -105,7 +54,6 @@
       max-width: 80%;
       padding: 10px 14px;
       border-radius: 12px;
-      position: relative;
       word-wrap: break-word;
     }
     .message.my {
@@ -119,36 +67,11 @@
       color: #e0e0e0;
     }
     .message-sender {
-      font-size: 12px;
-      color: #a0a0a0;
-      margin-bottom: 4px;
-    }
-    .message-text {
-      font-size: 15px;
-      line-height: 1.4;
-    }
-    .message-time {
-      font-size: 10px;
-      color: #888;
-      text-align: right;
-      margin-top: 4px;
-    }
-    .message-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-      justify-content: flex-end;
-    }
-    .action-btn {
-      background: none;
-      border: none;
+      font-size: 11px;
       color: #aaa;
-      font-size: 12px;
-      cursor: pointer;
+      margin-bottom: 3px;
     }
-    .action-btn:hover {
-      color: #fff;
-    }
+    /* Нижняя панель ввода */
     #input-container {
       background: #1f1f1f;
       padding: 10px 15px;
@@ -161,443 +84,146 @@
       flex: 1;
       background: #2c2c2c;
       border: 1px solid #444;
-      padding: 10px;
+      padding: 12px 15px;
       border-radius: 20px;
       color: #fff;
       outline: none;
     }
-    #send-btn {
+    #send-btn, .btn {
       background: #bb86fc;
+      color: #000;
       border: none;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 10px 20px;
+      border-radius: 20px;
       font-weight: bold;
+      cursor: pointer;
     }
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      z-index: 1000;
+    #send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      padding: 0;
+      display: flex;
       align-items: center;
       justify-content: center;
-    }
-    .modal-content {
-      background: #2c2c2c;
-      padding: 20px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 400px;
-    }
-    .modal-content h3 {
-      margin-bottom: 15px;
-    }
-    .modal-btns {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 15px;
-    }
-    #undo-banner {
-      display: none;
-      background: #333;
-      color: #fff;
-      padding: 10px 15px;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid #444;
-    }
-    #undo-banner button {
-      background: #bb86fc;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      cursor: pointer;
     }
   </style>
+
+  <!-- Firebase SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-  <div id="no-connection-screen">
-    <h2>Нет подключения к сети</h2>
-    <p>Проверьте соединение с интернетом...</p>
-  </div>
-
+  <!-- Экран входа -->
   <div id="login-screen">
-    <h1 style="margin-bottom: 20px;">Bib-Chat</h1>
+    <h1>Bib-Chat</h1>
     <button class="btn" id="login-btn">Войти через Google</button>
   </div>
 
+  <!-- Главный экран чата -->
   <div id="app-screen">
     <header>
-      <h1>Bib-Chat</h1>
-      <div class="header-btns">
-        <button class="icon-btn" onclick="openFavoritesModal()">★</button>
-        <button class="icon-btn" id="profile-btn">👤</button>
-      </div>
+      <h2>Bib-Chat</h2>
+      <button class="btn" id="logout-btn" style="padding: 6px 12px; font-size: 12px;">Выйти</button>
     </header>
 
     <div id="messages-container"></div>
 
-    <div id="undo-banner">
-      <span id="undo-timer-text">Сообщение удалено</span>
-      <div style="display: flex; gap: 8px;">
-        <button onclick="restoreSelfDeletedMsg()">Отмена</button>
-        <button id="btn-delete-everyone-banner" style="background:#ff5252; color:#fff;" onclick="confirmDeleteEveryoneFromBanner()">Удалить у всех</button>
-      </div>
-    </div>
-<div id="input-container">
-  <input type="text" id="message-input" placeholder="Введите сообщение...">
-  <button id="send-btn">➤</button>
-</div>
-    
-  <div id="delete-modal" class="modal">
-    <div class="modal-content">
-      <h3>Удалить сообщение?</h3>
-      <div class="modal-btns">
-        <button class="btn" style="background: #ff5252; color:#fff;" onclick="confirmDeleteSelf()">Удалить у себя</button>
-        <button class="btn" id="btn-delete-everyone" style="background: #d32f2f; color:#fff;" onclick="confirmDeleteEveryone()">Удалить у всех</button>
-        <button class="btn" style="background: #555; color:#fff;" onclick="closeDeleteModal()">Отмена</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="favorites-modal" class="modal">
-    <div class="modal-content">
-      <h3>Избранные сообщения</h3>
-      <div id="favorites-container" style="max-height: 300px; overflow-y: auto;"></div>
-      <div class="modal-btns">
-        <button class="btn" style="background: #555; color:#fff;" onclick="closeFavoritesModal()">Закрыть</button>
-      </div>
+    <div id="input-container">
+      <input type="text" id="message-input" placeholder="Введите сообщение...">
+      <button id="send-btn">➤</button>
     </div>
   </div>
 
   <script>
+    // Конфигурация Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyD...", // Вставь сюда свой реальный apiKey
+      authDomain: "bib-chat-64027.firebaseapp.com",
+      databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
+      projectId: "bib-chat-64027",
+      storageBucket: "bib-chat-64027.appspot.com",
+      messagingSenderId: "...",
+      appId: "..."
+    };
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
-  authDomain: "bib-chat-64027.firebaseapp.com",
-  databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
-  projectId: "bib-chat-64027",
-  storageBucket: "bib-chat-64027.firebasestorage.app",
-  messagingSenderId: "381474259253",
-  appId: "1:381474259253:web:b0874af197b70efdf0cc7c",
-  measurementId: "G-4QKXGTJDZW"
-};
-
-// Initialize Firebase
     if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
+      firebase.initializeApp(firebaseConfig);
     }
-    
-    const db = firebase.database();
+
     const auth = firebase.auth();
+    const db = firebase.database();
 
-    let currentUser = null;
-    let selectedMsgIdForDelete = null;
-    let selectedMsgSenderId = null;
-    let lastSelfDeletedMsgId = null;
-    let lastSelfDeletedSenderId = null;
-    let undoTimerInterval = null;
-    let undoSecondsLeft = 0;
-    let hiddenMessageIds = new Set();
-    let expandedMessageIds = new Set();
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    const messagesContainer = document.getElementById('messages-container');
 
-    document.getElementById('login-btn').addEventListener('click', () => {
-      alert("Запрос на вход отправлен...");
+    // Авторизация
+    loginBtn.addEventListener('click', () => {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider)
-        .then((result) => {
-          alert("Успешный вход: " + result.user.displayName);
-        })
-        .catch((error) => {
-          alert("Ошибка Firebase: " + error.message);
-        });
+      auth.signInWithPopup(provider).catch(error => alert("Ошибка входа: " + error.message));
     });
 
-    document.getElementById('send-btn').addEventListener('click', sendMessage);
-    document.getElementById('message-input').addEventListener('keypress', (e) => {
+    logoutBtn.addEventListener('click', () => auth.signOut());
+
+    // Отслеживание состояния входа
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        loginScreen.style.display = 'none';
+        appScreen.style.display = 'flex';
+        loadMessages();
+      } else {
+        loginScreen.style.display = 'flex';
+        appScreen.style.display = 'none';
+      }
+    });
+
+    // Отправка сообщений
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      const user = auth.currentUser;
+      if (text && user) {
+        db.ref('messages').push({
+          uid: user.uid,
+          name: user.displayName || 'Аноним',
+          text: text,
+          timestamp: Date.now()
+        });
+        messageInput.value = '';
+      }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendMessage();
     });
 
-    function sendMessage() {
-      const input = document.getElementById('message-input');
-      const text = input.value.trim();
-      if (!text || !currentUser) return;
-
-      const msgData = {
-        senderId: currentUser.uid,
-        senderName: currentUser.displayName || 'Пользователь',
-        text: text,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-      };
-
-      db.ref('messages').push(msgData);
-      input.value = '';
-    }
-
-    function listenToMessages() {
-      db.ref('messages').on('value', (snapshot) => {
-        const container = document.getElementById('messages-container');
-        container.innerHTML = '';
-
-        if (!snapshot.exists()) return;
-
-        snapshot.forEach((childSnap) => {
-          const msgId = childSnap.key;
-          if (hiddenMessageIds.has(msgId)) return;
-
-          const msg = childSnap.val();
-          const isMy = currentUser && msg.senderId === currentUser.uid;
-
-          const msgDiv = document.createElement('div');
-          msgDiv.className = `message ${isMy ? 'my' : 'other'}`;
-
-          const isExpanded = expandedMessageIds.has(msgId);
-          const shortText = escapeHtml(msg.text);
-
-          msgDiv.innerHTML = `
-            <div class="message-sender">${escapeHtml(msg.senderName)}</div>
-            <div class="message-text">${shortText}</div>
-            <div class="message-time">${msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</div>
-            <div class="message-actions">
-              <button class="action-btn" onclick="toggleFavorite('${msgId}', '${escapeHtml(msg.text)}')">★</button>
-              <button class="action-btn" onclick="openDeleteModal('${msgId}', '${msg.senderId}')">🗑</button>
-            </div>
-          `;
-
-          container.appendChild(msgDiv);
-        });
-
-        container.scrollTop = container.scrollHeight;
-      });
-    }
-
-    function toggleExpandMsg(msgId) {
-      if (expandedMessageIds.has(msgId)) {
-        expandedMessageIds.delete(msgId);
-      } else {
-        expandedMessageIds.add(msgId);
-      }
-      listenToMessages();
-    }
-
-    function openDeleteModal(msgId, senderId) {
-      selectedMsgIdForDelete = msgId;
-      selectedMsgSenderId = senderId;
-
-      const btnEveryone = document.getElementById('btn-delete-everyone');
-      btnEveryone.style.display = (currentUser && currentUser.uid === senderId) ? 'block' : 'none';
-
-      document.getElementById('delete-modal').style.display = 'flex';
-    }
-
-    function closeDeleteModal() {
-      selectedMsgIdForDelete = null;
-      selectedMsgSenderId = null;
-      document.getElementById('delete-modal').style.display = 'none';
-    }
-
-    function confirmDeleteSelf() {
-      if (selectedMsgIdForDelete) {
-        lastSelfDeletedMsgId = selectedMsgIdForDelete;
-        lastSelfDeletedSenderId = selectedMsgSenderId;
-        hiddenMessageIds.add(lastSelfDeletedMsgId);
-        closeDeleteModal();
-        listenToMessages();
-        startUndoTimer();
-      }
-    }
-
-    function startUndoTimer() {
-      clearInterval(undoTimerInterval);
-      undoSecondsLeft = 120;
-      const banner = document.getElementById('undo-banner');
-      const timerText = document.getElementById('undo-timer-text');
-      const btnEveryone = document.getElementById('btn-delete-everyone-banner');
-
-      btnEveryone.style.display = (currentUser && currentUser.uid === lastSelfDeletedSenderId) ? 'inline-block' : 'none';
-
-      banner.style.display = 'flex';
-      timerText.innerText = `Сообщение удалено (${undoSecondsLeft}с)`;
-
-      undoTimerInterval = setInterval(() => {
-        undoSecondsLeft--;
-        if (undoSecondsLeft > 0) {
-          timerText.innerText = `Сообщение удалено (${undoSecondsLeft}с)`;
-        } else {
-          clearInterval(undoTimerInterval);
-          banner.style.display = 'none';
-          lastSelfDeletedMsgId = null;
-        }
-      }, 1000);
-    }
-
-    function restoreSelfDeletedMsg() {
-      if (lastSelfDeletedMsgId) {
-        hiddenMessageIds.delete(lastSelfDeletedMsgId);
-        clearInterval(undoTimerInterval);
-        document.getElementById('undo-banner').style.display = 'none';
-        lastSelfDeletedMsgId = null;
-        listenToMessages();
-      }
-    }
-
-    function confirmDeleteEveryoneFromBanner() {
-      if (lastSelfDeletedMsgId) {
-        db.ref('messages/' + lastSelfDeletedMsgId).remove();
-        clearInterval(undoTimerInterval);
-        document.getElementById('undo-banner').style.display = 'none';
-        lastSelfDeletedMsgId = null;
-      }
-    }
-
-    function confirmDeleteEveryone() {
-      if (selectedMsgIdForDelete) {
-        db.ref('messages/' + selectedMsgIdForDelete).remove();
-        closeDeleteModal();
-      }
-    }
-
-    function openFavoritesModal() {
-      document.getElementById('favorites-modal').style.display = 'flex';
-      listenToFavorites();
-    }
-
-    function closeFavoritesModal() {
-      document.getElementById('favorites-modal').style.display = 'none';
-    }
-
-    function toggleFavorite(msgId, text) {
-      if (!currentUser) return;
-      const favRef = db.ref(`favorites/${currentUser.uid}/${msgId}`);
-      favRef.once('value', (snap) => {
-        if (snap.exists()) {
-          favRef.remove();
-        } else {
-          favRef.set({ text: text });
+    // Загрузка сообщений
+    function loadMessages() {
+      db.ref('messages').limitToLast(50).on('value', snapshot => {
+        messagesContainer.innerHTML = '';
+        const data = snapshot.val();
+        if (data) {
+          Object.values(data).forEach(msg => {
+            const isMy = auth.currentUser && msg.uid === auth.currentUser.uid;
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isMy ? 'my' : 'other'}`;
+            msgDiv.innerHTML = `
+              <div class="message-sender">${msg.name}</div>
+              <div class="message-text">${msg.text}</div>
+            `;
+            messagesContainer.appendChild(msgDiv);
+          });
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
       });
     }
-
-    function listenToFavorites() {
-      if (!currentUser) return;
-      const favContainer = document.getElementById('favorites-container');
-      db.ref(`favorites/${currentUser.uid}`).on('value', (snapshot) => {
-        favContainer.innerHTML = '';
-        if (!snapshot.exists()) {
-          favContainer.innerHTML = '<p style="color:#888;">Нет избранных сообщений</p>';
-          return;
-        }
-        snapshot.forEach((childSnap) => {
-          const msg = childSnap.val();
-          const msgDiv = document.createElement('div');
-          msgDiv.className = 'message other';
-          msgDiv.style.width = '100%';
-          msgDiv.style.marginBottom = '8px';
-          msgDiv.innerHTML = `
-            <span>${msg.text}</span>
-            <button class="action-btn" onclick="removeFavorite('${childSnap.key}')">❌</button>
-          `;
-          favContainer.appendChild(msgDiv);
-        });
-      });
-    }
-
-    function removeFavorite(msgId) {
-      if (currentUser) {
-        db.ref(`favorites/${currentUser.uid}/${msgId}`).remove();
-      }
-    }
-
-    function updateProfileUI() {
-      if (!currentUser) return;
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'flex';
-      listenToMessages();
-    }
-
-    function showNoConnectionScreen() {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'none';
-      document.getElementById('no-connection-screen').style.display = 'flex';
-    }
-
-    function hideNoConnectionScreen() {
-      document.getElementById('no-connection-screen').style.display = 'none';
-      if (currentUser) {
-        showAppScreen();
-      } else {
-        showLoginScreen();
-      }
-    }
-
-    function checkConnection() {
-      if (!navigator.onLine) {
-        showNoConnectionScreen();
-      } else {
-        hideNoConnectionScreen();
-      }
-    }
-
-    function showLoginScreen() {
-      document.getElementById('no-connection-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-    }
-
-    function showAppScreen() {
-      document.getElementById('no-connection-screen').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'flex';
-
-      updateProfileUI();
-      listenToMessages();
-      listenToFavorites();
-    }
-
-    function escapeHtml(str) {
-      return str ? str.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
-    }
-
-    window.addEventListener('online', checkConnection);
-    window.addEventListener('offline', checkConnection);
-
-    db.ref('.info/connected').on('value', (snap) => {
-      if (snap.val() === false && !navigator.onLine) {
-        showNoConnectionScreen();
-      }
-    });
-
-    firebase.auth().onAuthStateChanged((user) => {
-      if (!navigator.onLine) {
-        showNoConnectionScreen();
-        return;
-      }
-
-      if (user) {
-        currentUser = {
-          id: user.uid,
-          uid: user.uid,
-          name: user.displayName,
-          email: user.email,
-          picture: user.photoURL
-        };
-        showAppScreen();
-      } else {
-        showLoginScreen();
-      }
-    });
   </script>
 </body>
 </html>
