@@ -145,7 +145,7 @@
     </div>
   </div>
 
-  <script>
+    <script>
     // Конфигурация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
@@ -165,6 +165,9 @@
     const auth = firebase.auth();
     const db = firebase.database();
 
+    // Явно задаем сохранение сессии в браузер
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
     const loginScreen = document.getElementById('login-screen');
     const appScreen = document.getElementById('app-screen');
     const loginBtn = document.getElementById('login-btn');
@@ -174,7 +177,7 @@
     const messageInput = document.getElementById('message-input');
     const messagesContainer = document.getElementById('messages-container');
 
-    // Кнопка "Написать" ставит курсор в поле ввода снизу
+    // Кнопка "Написать"
     focusInputBtn.addEventListener('click', () => {
       messageInput.focus();
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -189,7 +192,18 @@
     // Выход
     logoutBtn.addEventListener('click', () => auth.signOut());
 
-    // Переключение экранов при авторизации
+    // Проверка результата редиректа при загрузке
+    auth.getRedirectResult().then(result => {
+      if (result && result.user) {
+        console.log("Успешный вход:", result.user.displayName);
+      }
+    }).catch(error => {
+      if (error && error.message) {
+        alert("Ошибка авторизации: " + error.message);
+      }
+    });
+
+    // Отслеживание состояния пользователя
     auth.onAuthStateChanged(user => {
       if (user) {
         loginScreen.style.display = 'none';
@@ -198,13 +212,6 @@
       } else {
         loginScreen.style.display = 'flex';
         appScreen.style.display = 'none';
-      }
-    });
-
-    // Отслеживание ошибок авторизации
-    auth.getRedirectResult().catch(error => {
-      if (error && error.message) {
-        alert("Ошибка входа: " + error.message);
       }
     });
 
@@ -251,3 +258,4 @@
   </script>
 </body>
 </html>
+
