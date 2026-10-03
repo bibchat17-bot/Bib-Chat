@@ -145,8 +145,7 @@
     import { 
       getAuth, 
       GoogleAuthProvider, 
-      signInWithRedirect, 
-      getRedirectResult, 
+      signInWithPopup, 
       onAuthStateChanged, 
       signOut 
     } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
@@ -191,17 +190,16 @@
       });
     }
 
-    // Обработка возврата после авторизации
-    getRedirectResult(auth).catch(error => {
-      if (error.code && error.code !== 'auth/popup-closed-by-user') {
-        alert("Ошибка авторизации: " + error.message);
-      }
-    });
-
-    // Вход через Google Redirect (идеально для телефонов)
-    loginBtn.addEventListener('click', () => {
+    // Вход через Popup
+    loginBtn.addEventListener('click', async () => {
       const provider = new GoogleAuthProvider();
-      signInWithRedirect(auth, provider);
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        if (error.code !== 'auth/popup-closed-by-user') {
+          alert("Ошибка входа: " + error.message);
+        }
+      }
     });
 
     // Выход
