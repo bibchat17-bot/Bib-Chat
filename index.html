@@ -7,7 +7,7 @@
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
+      margin: 0; 
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
@@ -210,6 +210,79 @@
     });
 
     // Отслеживание входа/выхода
+    let currentUid = null;
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        currentUid = user.uid;
+        loginScreen.style.display = 'none';
+        appScreen.style.display = 'flex';
+        loadMessages();
+      } else {
+        currentUid = null;
+        loginScreen.style.display = 'flex';
+  <!-- Firebase v12 Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+    import { 
+      getDatabase, 
+      ref, 
+      push, 
+      onValue, 
+      query, 
+      limitToLast 
+    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
+      authDomain: "bib-chat-64027.firebaseapp.com",
+      databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
+      projectId: "bib-chat-64027",
+      storageBucket: "bib-chat-64027.firebasestorage.app",
+      messagingSenderId: "381474259253",
+      appId: "1:381474259253:web:bd5269fa68c2a1c5f0cc7c",
+      measurementId: "G-LDWKZH8LW4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const focusInputBtn = document.getElementById('focus-input-btn');
+    const sendBtn = document.getElementById('send-btn');
+    const messageInput = document.getElementById('message-input');
+    const messagesContainer = document.getElementById('messages-container');
+
+    // Кнопка "Написать"
+    focusInputBtn.addEventListener('click', () => {
+      messageInput.focus();
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+
+    // Вход через Popup (без редиректа и сброса)
+    loginBtn.addEventListener('click', async () => {
+      const provider = new GoogleAuthProvider();
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        alert("Ошибка входа: " + error.message);
+      }
+    });
+
+    // Выход
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    // Отслеживание состояния входа
     let currentUid = null;
     onAuthStateChanged(auth, user => {
       if (user) {
