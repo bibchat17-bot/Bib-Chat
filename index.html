@@ -140,13 +140,14 @@
   <script>
     // Конфигурация Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyD...", // Вставь сюда свой реальный apiKey
+      apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
       authDomain: "bib-chat-64027.firebaseapp.com",
       databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
       projectId: "bib-chat-64027",
-      storageBucket: "bib-chat-64027.appspot.com",
-      messagingSenderId: "...",
-      appId: "..."
+      storageBucket: "bib-chat-64027.firebasestorage.app",
+      messagingSenderId: "381474259253",
+      appId: "1:381474259253:web:6b6ddb63fffeba31f0cc7c",
+      measurementId: "G-87651911DZ"
     };
 
     if (!firebase.apps.length) {
@@ -164,15 +165,16 @@
     const messageInput = document.getElementById('message-input');
     const messagesContainer = document.getElementById('messages-container');
 
-    // Авторизация
+    // Вход через Redirect
     loginBtn.addEventListener('click', () => {
       const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(error => alert("Ошибка входа: " + error.message));
+      auth.signInWithRedirect(provider);
     });
 
+    // Выход
     logoutBtn.addEventListener('click', () => auth.signOut());
 
-    // Отслеживание состояния входа
+    // Переключение экранов при авторизации
     auth.onAuthStateChanged(user => {
       if (user) {
         loginScreen.style.display = 'none';
@@ -181,6 +183,13 @@
       } else {
         loginScreen.style.display = 'flex';
         appScreen.style.display = 'none';
+      }
+    });
+
+    // Отслеживание ошибок авторизации
+    auth.getRedirectResult().catch(error => {
+      if (error && error.message) {
+        alert("Ошибка входа: " + error.message);
       }
     });
 
