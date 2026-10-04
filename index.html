@@ -25,12 +25,13 @@
     .msg-author { font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.8; }
     .msg.my-msg .msg-author { display: none; }
     .msg-text { font-size: 15px; word-break: break-word; }
-    .msg-info { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; }
+    .msg-info { font-size: 10px; opacity: 0.75; margin-top: 4px; text-align: right; }
 
-    .msg-actions { margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 6px; display: flex; gap: 10px; font-size: 11px; opacity: 0.85; }
+    .msg-actions { margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 6px; display: flex; gap: 10px; font-size: 11px; opacity: 0.85; align-items: center; }
     .msg.my-msg .msg-actions { border-top-color: rgba(255,255,255,0.2); }
     .action-btn { cursor: pointer; user-select: none; }
     .action-btn:hover { text-decoration: underline; }
+    .btn-trash { cursor: pointer; font-size: 13px; margin-left: auto; }
 
     /* Форма ввода */
     .input-box { display: flex; padding: 10px; background: white; border-top: 1px solid #ddd; }
@@ -46,15 +47,29 @@
     .profile-btn { padding: 12px; margin-top: 10px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; color: white; cursor: pointer; width: 100%; max-width: 300px; }
     .btn-logout { background: #f39c12; }
     .btn-delete { background: #e74c3c; }
-    .btn-login { background: #4285f4; padding: 14px 28px; border: none; border-radius: 25px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .btn-login { background: #4285f4; padding: 14px 28px; border: none; border-radius: 25px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); margin-top: 15px; }
+
+    /* Всплывающее окно отмены удаления */
+    #undo-toast {
+      position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+      background: #323232; color: white; padding: 12px 20px; border-radius: 25px;
+      display: none; align-items: center; gap: 15px; font-size: 14px; z-index: 1000;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    #undo-toast button { background: none; border: none; color: #0084ff; font-weight: bold; cursor: pointer; font-size: 14px; }
   </style>
 </head>
 <body>
 
   <!-- Экран входа -->
-  <div id="auth-screen" class="screen active" style="justify-content: center; align-items: center; text-align: center; padding: 20px;">
-    <h1 style="color: #0084ff; margin-bottom: 10px;">Bib Chat</h1>
-    <p style="margin-bottom: 30px; color: #666;">Войдите через Google, чтобы начать общение</p>
+  <div id="auth-screen" class="screen active" style="justify-content: center; align-items: center; text-align: center; padding: 25px;">
+    <h1 style="color: #0084ff; margin-bottom: 15px;">Добро пожаловать в bib chat!</h1>
+    <p style="margin-bottom: 10px; color: #444; font-size: 16px; max-width: 320px; line-height: 1.4;">
+      В глобальном чате вы можете найти друзей и пообщаться.
+    </p>
+    <p style="margin-bottom: 20px; color: #666; font-size: 14px; max-width: 320px;">
+      Чтобы пообщаться войдите с Google, Это займет меньше минуты
+    </p>
     <button id="btn-google-login" class="btn-login">Войти через Google</button>
   </div>
 
@@ -92,16 +107,22 @@
     <button id="tab-profile">Профиль</button>
   </nav>
 
+  <!-- Плашка отмены удаления -->
+  <div id="undo-toast">
+    <span>Сообщение скрыто</span>
+    <button id="undo-btn">Отменить (<span id="undo-timer">5</span>s)</button>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { 
-      getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, deleteUser, onAuthStateChanged 
+      getAuth, signInWithPopup, GoogleAuthProvider, signOut, deleteUser, onAuthStateChanged 
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
     import { 
       getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, query, orderBy, serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // ТВОИ НАСТРОЙКИ FIREBASE
+    // Конфигурация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
       authDomain: "bib-chat-64027.firebaseapp.com",
@@ -121,7 +142,11 @@
     let currentUser = null;
     let hiddenLocally = JSON.parse(localStorage.getItem("hiddenMsgs") || "[]");
 
-    // Элементы UI
+    let undoTimeout = null;
+    let undoInterval = null;
+    let pendingHideId = null;
+
+    // UI Элементы
     const authScreen = document.getElementById("auth-screen");
     const chatScreen = document.getElementById("chat-screen");
     const favScreen = document.getElementById("fav-screen");
@@ -132,10 +157,14 @@
     const favMessages = document.getElementById("fav-messages");
     const msgInput = document.getElementById("message-input");
 
-    // Вход через Redirect
+    const undoToast = document.getElementById("undo-toast");
+    const undoBtn = document.getElementById("undo-btn");
+    const undoTimer = document.getElementById("undo-timer");
+
+    // Авторизация через Pop-up
     document.getElementById("btn-google-login").onclick = async () => {
       try {
-        await signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
       } catch (e) {
         alert("Ошибка входа: " + e.message);
       }
@@ -155,14 +184,7 @@
       }
     };
 
-    // Проверка ошибок редиректа
-    getRedirectResult(auth).catch((error) => {
-      if (error && error.code) {
-        alert("Ошибка авторизации: " + error.message);
-      }
-    });
-
-    // Отслеживание состояния входа
+    // Отслеживание входа
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -182,7 +204,7 @@
       }
     });
 
-    // Переключение вкладок
+    // Навигация
     function switchTab(tabName) {
       document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
       document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
@@ -239,8 +261,9 @@
           const isMy = data.uid === currentUser.uid;
           const isStarred = data.starredBy && data.starredBy.includes(currentUser.uid);
 
+          // Форматирование времени
           let timeStr = "--:--";
-          if (data.createdAt) {
+          if (data.createdAt && data.createdAt.toDate) {
             const date = data.createdAt.toDate();
             timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           }
@@ -254,24 +277,24 @@
             <div class="msg-actions">
               <span class="action-btn btn-star">${isStarred ? "★ В избранном" : "☆ В избранное"}</span>
               <span class="action-btn btn-del-self">Удалить у себя</span>
-              ${isMy ? '<span class="action-btn btn-del-all">Удалить у всех</span>' : ''}
+              ${isMy ? '<span class="btn-trash" title="Удалить у всех">🗑️</span>' : ''}
             </div>
           `;
 
           // Избранное
           msgEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, isStarred);
 
-          // Удалить у себя
+          // Удалить у себя с возможностью отмены (5 сек)
           msgEl.querySelector(".btn-del-self").onclick = () => {
-            hiddenLocally.push(msgId);
-            localStorage.setItem("hiddenMsgs", JSON.stringify(hiddenLocally));
-            msgEl.remove();
+            hideLocallyWithUndo(msgId);
           };
 
-          // Удалить у всех
+          // Удалить у всех (мусорка 🗑️)
           if (isMy) {
-            msgEl.querySelector(".btn-del-all").onclick = async () => {
-              await deleteDoc(doc(db, "messages", msgId));
+            msgEl.querySelector(".btn-trash").onclick = async () => {
+              if (confirm("Удалить сообщение у всех?")) {
+                await deleteDoc(doc(db, "messages", msgId));
+              }
             };
           }
 
@@ -281,14 +304,12 @@
           if (isStarred) {
             const favEl = msgEl.cloneNode(true);
             favEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, true);
-            favEl.querySelector(".btn-del-self").onclick = () => {
-              hiddenLocally.push(msgId);
-              localStorage.setItem("hiddenMsgs", JSON.stringify(hiddenLocally));
-              favEl.remove();
-            };
+            favEl.querySelector(".btn-del-self").onclick = () => hideLocallyWithUndo(msgId);
             if (isMy) {
-              favEl.querySelector(".btn-del-all").onclick = async () => {
-                await deleteDoc(doc(db, "messages", msgId));
+              favEl.querySelector(".btn-trash").onclick = async () => {
+                if (confirm("Удалить сообщение у всех?")) {
+                  await deleteDoc(doc(db, "messages", msgId));
+                }
               };
             }
             favMessages.appendChild(favEl);
@@ -299,7 +320,53 @@
       });
     }
 
-    // Добавление / удаление из избранного
+    // Логика временной скрытости с кнопкой отмены
+    function hideLocallyWithUndo(msgId) {
+      if (pendingHideId) {
+        commitHide(pendingHideId);
+      }
+
+      pendingHideId = msgId;
+      hiddenLocally.push(msgId);
+      loadMessages();
+
+      let secondsLeft = 5;
+      undoTimer.textContent = secondsLeft;
+      undoToast.style.display = "flex";
+
+      clearInterval(undoInterval);
+      clearTimeout(undoTimeout);
+
+      undoInterval = setInterval(() => {
+        secondsLeft--;
+        undoTimer.textContent = secondsLeft;
+        if (secondsLeft <= 0) clearInterval(undoInterval);
+      }, 1000);
+
+      undoTimeout = setTimeout(() => {
+        commitHide(msgId);
+      }, 5000);
+    }
+
+    function commitHide(msgId) {
+      localStorage.setItem("hiddenMsgs", JSON.stringify(hiddenLocally));
+      undoToast.style.display = "none";
+      clearInterval(undoInterval);
+      pendingHideId = null;
+    }
+
+    undoBtn.onclick = () => {
+      if (pendingHideId) {
+        hiddenLocally = hiddenLocally.filter(id => id !== pendingHideId);
+        pendingHideId = null;
+        clearTimeout(undoTimeout);
+        clearInterval(undoInterval);
+        undoToast.style.display = "none";
+        loadMessages();
+      }
+    };
+
+    // Избранное
     async function toggleStar(msgId, isStarred) {
       const msgRef = doc(db, "messages", msgId);
       if (isStarred) {
