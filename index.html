@@ -3,263 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bib-Chat</title>
+  <title>Bib Chat</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0; 
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
+
     /* Экраны */
-    #login-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      gap: 20px;
-    }
-    #app-screen {
-      display: none;
-      flex-direction: column;
-      height: 100vh;
-    }
+    .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
+    .screen.active { display: flex; }
+
     /* Шапка */
-    header {
-      background: #1f1f1f;
-      padding: 15px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #333;
-    }
-    .header-btns {
-      display: flex;
-      gap: 10px;
-    }
+    header { background: #0084ff; color: white; padding: 15px; text-align: center; font-size: 18px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+    /* Контент */
+    .content { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+
     /* Сообщения */
-    #messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .message {
-      max-width: 80%;
-      padding: 10px 14px;
-      border-radius: 12px;
-      word-wrap: break-word;
-    }
-    .message.my {
-      align-self: flex-end;
-      background: #3700b3;
-      color: #fff;
-    }
-    .message.other {
-      align-self: flex-start;
-      background: #2c2c2c;
-      color: #e0e0e0;
-    }
-    .message-sender {
-      font-size: 11px;
-      color: #aaa;
-      margin-bottom: 3px;
-    }
-    /* Поле ввода снизу */
-    #input-container {
-      background: #1f1f1f;
-      padding: 10px 15px;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      border-top: 1px solid #333;
-    }
-    #message-input {
-      flex: 1;
-      background: #2c2c2c;
-      border: 1px solid #444;
-      padding: 12px 15px;
-      border-radius: 20px;
-      color: #fff;
-      outline: none;
-    }
-    #send-btn, .btn {
-      background: #bb86fc;
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #send-btn {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .msg { max-width: 80%; padding: 10px 14px; border-radius: 16px; background: white; align-self: flex-start; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+    .msg.my-msg { background: #0084ff; color: white; align-self: flex-end; }
+    
+    .msg-author { font-size: 11px; font-weight: bold; margin-bottom: 4px; opacity: 0.8; }
+    .msg.my-msg .msg-author { display: none; }
+    .msg-text { font-size: 15px; word-break: break-word; }
+    .msg-info { font-size: 10px; opacity: 0.7; margin-top: 4px; text-align: right; }
+
+    .msg-actions { margin-top: 8px; border-top: 1px solid rgba(0,0,0,0.08); padding-top: 6px; display: flex; gap: 10px; font-size: 11px; opacity: 0.85; }
+    .msg.my-msg .msg-actions { border-top-color: rgba(255,255,255,0.2); }
+    .action-btn { cursor: pointer; user-select: none; }
+    .action-btn:hover { text-decoration: underline; }
+
+    /* Форма ввода */
+    .input-box { display: flex; padding: 10px; background: white; border-top: 1px solid #ddd; }
+    .input-box input { flex: 1; padding: 10px 15px; border: 1px solid #ccc; border-radius: 20px; outline: none; font-size: 15px; }
+    .input-box button { margin-left: 8px; padding: 10px 20px; border: none; background: #0084ff; color: white; border-radius: 20px; font-weight: bold; cursor: pointer; }
+
+    /* Нижняя панель */
+    nav { display: flex; background: white; border-top: 1px solid #ddd; height: 60px; }
+    nav button { flex: 1; border: none; background: transparent; font-size: 14px; font-weight: bold; color: #777; cursor: pointer; }
+    nav button.active { color: #0084ff; }
+
+    /* Кнопки профиля и авторизации */
+    .profile-btn { padding: 12px; margin-top: 10px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; color: white; cursor: pointer; width: 100%; max-width: 300px; }
+    .btn-logout { background: #f39c12; }
+    .btn-delete { background: #e74c3c; }
+    .btn-login { background: #4285f4; padding: 14px 28px; border: none; border-radius: 25px; color: white; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
   </style>
 </head>
 <body>
 
   <!-- Экран входа -->
-  <div id="login-screen">
-    <h1>Bib-Chat</h1>
-    <button class="btn" id="login-btn">Войти через Google</button>
+  <div id="auth-screen" class="screen active" style="justify-content: center; align-items: center; text-align: center; padding: 20px;">
+    <h1 style="color: #0084ff; margin-bottom: 10px;">Bib Chat</h1>
+    <p style="margin-bottom: 30px; color: #666;">Войдите через Google, чтобы начать общение</p>
+    <button id="btn-google-login" class="btn-login">Войти через Google</button>
   </div>
 
-  <!-- Главный экран чата -->
-  <div id="app-screen">
-    <header>
-      <h2>Bib-Chat</h2>
-      <div class="header-btns">
-        <button class="btn" id="focus-input-btn" style="padding: 6px 14px; font-size: 13px;">✏️ Написать</button>
-        <button class="btn" id="logout-btn" style="padding: 6px 12px; font-size: 12px; background: #333; color: #fff;">Выйти</button>
-      </div>
-    </header>
-
-    <div id="messages-container"></div>
-
-    <div id="input-container">
+  <!-- Экран Чата -->
+  <div id="chat-screen" class="screen">
+    <header>Bib Chat</header>
+    <div id="chat-messages" class="content"></div>
+    <div class="input-box">
       <input type="text" id="message-input" placeholder="Введите сообщение...">
-      <button id="send-btn">➤</button>
+      <button id="send-btn">Отправить</button>
     </div>
   </div>
 
-  <!-- Современный Firebase v12 Modular SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-    import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithPopup, 
-      onAuthStateChanged, 
-      signOut 
-    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-    import { 
-      getDatabase, 
-      ref, 
-      push, 
-      onValue, 
-      query, 
-      limitToLast 
-    } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+  <!-- Экран Избранного -->
+  <div id="fav-screen" class="screen">
+    <header>Избранное</header>
+    <div id="fav-messages" class="content"></div>
+  </div>
 
+  <!-- Экран Профиля -->
+  <div id="profile-screen" class="screen">
+    <header>Профиль</header>
+    <div class="content" style="align-items: center; justify-content: center;">
+      <h2 id="user-name" style="margin-bottom: 5px;">Пользователь</h2>
+      <p id="user-email" style="color: #666; margin-bottom: 25px;"></p>
+      <button id="btn-logout" class="profile-btn btn-logout">Выйти из аккаунта</button>
+      <button id="btn-delete-account" class="profile-btn btn-delete">Удалить профиль</button>
+    </div>
+  </div>
+
+  <!-- Нижняя навигация -->
+  <nav id="bottom-nav" style="display: none;">
+    <button id="tab-chat" class="active">Чат</button>
+    <button id="tab-fav">Избранное</button>
+    <button id="tab-profile">Профиль</button>
+  </nav>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { 
+      getAuth, signInWithPopup, GoogleAuthProvider, signOut, deleteUser, onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { 
+      getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, query, orderBy, serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    // ТВОИ НАСТРОЙКИ FIREBASE
     const firebaseConfig = {
-      apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
+      apiKey: "ТВОЙ_API_KEY",
       authDomain: "bib-chat-64027.firebaseapp.com",
-      databaseURL: "https://bib-chat-64027-default-rtdb.firebaseio.com",
       projectId: "bib-chat-64027",
-      storageBucket: "bib-chat-64027.firebasestorage.app",
-      messagingSenderId: "381474259253",
-      appId: "1:381474259253:web:bd5269fa68c2a1c5f0cc7c",
-      measurementId: "G-LDWKZH8LW4"
+      storageBucket: "bib-chat-64027.appspot.com",
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getDatabase(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
 
-    const loginScreen = document.getElementById('login-screen');
-    const appScreen = document.getElementById('app-screen');
-    const loginBtn = document.getElementById('login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
-    const focusInputBtn = document.getElementById('focus-input-btn');
-    const sendBtn = document.getElementById('send-btn');
-    const messageInput = document.getElementById('message-input');
-    const messagesContainer = document.getElementById('messages-container');
+    let currentUser = null;
+    let hiddenLocally = JSON.parse(localStorage.getItem("hiddenMsgs") || "[]");
 
-    // Кнопка "Написать"
-    if (focusInputBtn) {
-      focusInputBtn.addEventListener('click', () => {
-        messageInput.focus();
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-      });
-    }
+    // UI Элементы
+    const authScreen = document.getElementById("auth-screen");
+    const chatScreen = document.getElementById("chat-screen");
+    const favScreen = document.getElementById("fav-screen");
+    const profileScreen = document.getElementById("profile-screen");
+    const bottomNav = document.getElementById("bottom-nav");
 
-    // Вход через Popup
-    loginBtn.addEventListener('click', async () => {
-      const provider = new GoogleAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        if (error.code !== 'auth/popup-closed-by-user') {
-          alert("Ошибка входа: " + error.message);
+    const chatMessages = document.getElementById("chat-messages");
+    const favMessages = document.getElementById("fav-messages");
+    const msgInput = document.getElementById("message-input");
+
+    // Авторизация
+    document.getElementById("btn-google-login").onclick = () => signInWithPopup(auth, provider);
+    document.getElementById("btn-logout").onclick = () => signOut(auth);
+
+    document.getElementById("btn-delete-account").onclick = async () => {
+      if (confirm("Вы уверены, что хотите полностью удалить аккаунт?")) {
+        try {
+          await deleteUser(auth.currentUser);
+          alert("Профиль успешно удалён.");
+        } catch (e) {
+          alert("Для удаления требуется заново войти в аккаунт.");
         }
       }
-    });
+    };
 
-    // Выход
-    logoutBtn.addEventListener('click', () => signOut(auth));
-
-    // Отслеживание состояния входа
-    let currentUid = null;
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        currentUid = user.uid;
-        loginScreen.style.display = 'none';
-        appScreen.style.display = 'flex';
+        currentUser = user;
+        authScreen.classList.remove("active");
+        bottomNav.style.display = "flex";
+        switchTab("chat");
+
+        document.getElementById("user-name").textContent = user.displayName || "Пользователь";
+        document.getElementById("user-email").textContent = user.email || "";
+
         loadMessages();
       } else {
-        currentUid = null;
-        loginScreen.style.display = 'flex';
-        appScreen.style.display = 'none';
+        currentUser = null;
+        document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+        authScreen.classList.add("active");
+        bottomNav.style.display = "none";
       }
     });
 
-    // Отправка сообщений
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      const user = auth.currentUser;
-      if (text && user) {
-        push(ref(db, 'messages'), {
-          uid: user.uid,
-          name: user.displayName || 'Аноним',
-          text: text,
-          timestamp: Date.now()
-        });
-        messageInput.value = '';
+    // Навигация
+    function switchTab(tabName) {
+      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+
+      if (tabName === "chat") {
+        chatScreen.classList.add("active");
+        document.getElementById("tab-chat").classList.add("active");
+      } else if (tabName === "fav") {
+        favScreen.classList.add("active");
+        document.getElementById("tab-fav").classList.add("active");
+      } else if (tabName === "profile") {
+        profileScreen.classList.add("active");
+        document.getElementById("tab-profile").classList.add("active");
       }
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
+    document.getElementById("tab-chat").onclick = () => switchTab("chat");
+    document.getElementById("tab-fav").onclick = () => switchTab("fav");
+    document.getElementById("tab-profile").onclick = () => switchTab("profile");
 
-    // Загрузка сообщений
-    function loadMessages() {
-      const messagesRef = query(ref(db, 'messages'), limitToLast(50));
-      onValue(messagesRef, snapshot => {
-        messagesContainer.innerHTML = '';
-        const data = snapshot.val();
-        if (data) {
-          Object.values(data).forEach(msg => {
-            const isMy = currentUid && msg.uid === currentUid;
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${isMy ? 'my' : 'other'}`;
-            msgDiv.innerHTML = `
-              <div class="message-sender">${msg.name}</div>
-              <div class="message-text">${msg.text}</div>
-            `;
-            messagesContainer.appendChild(msgDiv);
-          });
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+    // Отправка сообщений
+    document.getElementById("send-btn").onclick = sendMessage;
+    msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text || !currentUser) return;
+
+      await addDoc(collection(db, "messages"), {
+        text: text,
+        uid: currentUser.uid,
+        author: currentUser.displayName || "Гость",
+        createdAt: serverTimestamp(),
+        starredBy: []
       });
+
+      msgInput.value = "";
+    }
+
+    // Загрузка сообщений в реальном времени
+    function loadMessages() {
+      const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
+
+      onSnapshot(q, (snapshot) => {
+        chatMessages.innerHTML = "";
+        favMessages.innerHTML = "";
+
+        snapshot.docs.forEach((docSnap) => {
+          const msgId = docSnap.id;
+          const data = docSnap.data();
+
+          if (hiddenLocally.includes(msgId)) return;
+
+          const isMy = data.uid === currentUser.uid;
+          const isStarred = data.starredBy && data.starredBy.includes(currentUser.uid);
+
+          let timeStr = "--:--";
+          if (data.createdAt) {
+            const date = data.createdAt.toDate();
+            timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }
+
+          const msgEl = document.createElement("div");
+          msgEl.className = `msg ${isMy ? "my-msg" : ""}`;
+          msgEl.innerHTML = `
+            <div class="msg-author">${data.author}</div>
+            <div class="msg-text">${data.text}</div>
+            <div class="msg-info">${timeStr}</div>
+            <div class="msg-actions">
+              <span class="action-btn btn-star">${isStarred ? "★ В избранном" : "☆ В избранное"}</span>
+              <span class="action-btn btn-del-self">Удалить у себя</span>
+              ${isMy ? '<span class="action-btn btn-del-all">Удалить у всех</span>' : ''}
+            </div>
+          `;
+
+          // В избранное
+          msgEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, isStarred);
+
+          // Удалить у себя
+          msgEl.querySelector(".btn-del-self").onclick = () => {
+            hiddenLocally.push(msgId);
+            localStorage.setItem("hiddenMsgs", JSON.stringify(hiddenLocally));
+            msgEl.remove();
+          };
+
+          // Удалить у всех
+          if (isMy) {
+            msgEl.querySelector(".btn-del-all").onclick = async () => {
+              await deleteDoc(doc(db, "messages", msgId));
+            };
+          }
+
+          chatMessages.appendChild(msgEl);
+
+          // Добавление во вкладку Избранного
+          if (isStarred) {
+            const favEl = msgEl.cloneNode(true);
+            favEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, true);
+            favEl.querySelector(".btn-del-self").onclick = () => {
+              hiddenLocally.push(msgId);
+              localStorage.setItem("hiddenMsgs", JSON.stringify(hiddenLocally));
+              favEl.remove();
+            };
+            if (isMy) {
+              favEl.querySelector(".btn-del-all").onclick = async () => {
+                await deleteDoc(doc(db, "messages", msgId));
+              };
+            }
+            favMessages.appendChild(favEl);
+          }
+        });
+
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      });
+    }
+
+    // Переключение избранного
+    async function toggleStar(msgId, isStarred) {
+      const msgRef = doc(db, "messages", msgId);
+      if (isStarred) {
+        await updateDoc(msgRef, { starredBy: arrayRemove(currentUser.uid) });
+      } else {
+        await updateDoc(msgRef, { starredBy: arrayUnion(currentUser.uid) });
+      }
     }
   </script>
 </body>
