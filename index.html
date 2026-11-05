@@ -8,8 +8,20 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { display: flex; flex-direction: column; height: 100vh; background: #f0f2f5; }
 
+    /* Баннер о закрытии */
+    .shutdown-banner {
+      background: linear-gradient(90deg, #ff416c, #ff4b2b);
+      color: #ffffff;
+      text-align: center;
+      padding: 10px 15px;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 2000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
     /* Экраны */
-    .screen { display: none; flex-direction: column; height: 100%; width: 100%; }
+    .screen { display: none; flex-direction: column; flex: 1; width: 100%; overflow: hidden; }
     .screen.active { display: flex; }
 
     /* Шапка */
@@ -60,6 +72,11 @@
   </style>
 </head>
 <body>
+
+  <!-- Баннер о закрытии -->
+  <div class="shutdown-banner">
+    ⚠️ Мессенджер скоро закроется!
+  </div>
 
   <!-- Экран входа -->
   <div id="auth-screen" class="screen active" style="justify-content: center; align-items: center; text-align: center; padding: 25px;">
@@ -122,7 +139,6 @@
       getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, query, orderBy, serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // Конфигурация Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyDaz-XIubX1sj1NdF-mfyukHCAJAzTgDLI",
       authDomain: "bib-chat-64027.firebaseapp.com",
@@ -146,7 +162,6 @@
     let undoInterval = null;
     let pendingHideId = null;
 
-    // UI Элементы
     const authScreen = document.getElementById("auth-screen");
     const chatScreen = document.getElementById("chat-screen");
     const favScreen = document.getElementById("fav-screen");
@@ -161,7 +176,6 @@
     const undoBtn = document.getElementById("undo-btn");
     const undoTimer = document.getElementById("undo-timer");
 
-    // Авторизация через Pop-up
     document.getElementById("btn-google-login").onclick = async () => {
       try {
         await signInWithPopup(auth, provider);
@@ -170,7 +184,6 @@
       }
     };
 
-    // Выход и удаление
     document.getElementById("btn-logout").onclick = () => signOut(auth);
 
     document.getElementById("btn-delete-account").onclick = async () => {
@@ -184,7 +197,6 @@
       }
     };
 
-    // Отслеживание входа
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
@@ -204,7 +216,6 @@
       }
     });
 
-    // Навигация
     function switchTab(tabName) {
       document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
       document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
@@ -225,7 +236,6 @@
     document.getElementById("tab-fav").onclick = () => switchTab("fav");
     document.getElementById("tab-profile").onclick = () => switchTab("profile");
 
-    // Отправка сообщений
     document.getElementById("send-btn").onclick = sendMessage;
     msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
 
@@ -244,7 +254,6 @@
       msgInput.value = "";
     }
 
-    // Загрузка сообщений
     function loadMessages() {
       const q = query(collection(db, "messages"), orderBy("createdAt", "asc"));
 
@@ -261,7 +270,6 @@
           const isMy = data.uid === currentUser.uid;
           const isStarred = data.starredBy && data.starredBy.includes(currentUser.uid);
 
-          // Форматирование времени
           let timeStr = "--:--";
           if (data.createdAt && data.createdAt.toDate) {
             const date = data.createdAt.toDate();
@@ -281,15 +289,12 @@
             </div>
           `;
 
-          // Избранное
           msgEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, isStarred);
 
-          // Удалить у себя с возможностью отмены (5 сек)
           msgEl.querySelector(".btn-del-self").onclick = () => {
             hideLocallyWithUndo(msgId);
           };
 
-          // Удалить у всех (мусорка 🗑️)
           if (isMy) {
             msgEl.querySelector(".btn-trash").onclick = async () => {
               if (confirm("Удалить сообщение у всех?")) {
@@ -300,7 +305,6 @@
 
           chatMessages.appendChild(msgEl);
 
-          // Вкладка «Избранное»
           if (isStarred) {
             const favEl = msgEl.cloneNode(true);
             favEl.querySelector(".btn-star").onclick = () => toggleStar(msgId, true);
@@ -320,7 +324,6 @@
       });
     }
 
-    // Логика временной скрытости с кнопкой отмены
     function hideLocallyWithUndo(msgId) {
       if (pendingHideId) {
         commitHide(pendingHideId);
@@ -366,7 +369,6 @@
       }
     };
 
-    // Избранное
     async function toggleStar(msgId, isStarred) {
       const msgRef = doc(db, "messages", msgId);
       if (isStarred) {
